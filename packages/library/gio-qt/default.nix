@@ -5,7 +5,7 @@
   cmake,
   pkg-config,
   qt6Packages,
-  glibmm_2_4,
+  glibmm,
   doxygen,
   buildDocs ? false,
 }:
@@ -49,7 +49,7 @@ stdenv.mkDerivation (finalAttrs: {
     (lib.cmakeBool "BUILD_TESTS" false)
   ];
 
-  propagatedBuildInputs = [ glibmm_2_4 ];
+  propagatedBuildInputs = [ glibmm ];
 
   dontWrapQtApps = true;
 

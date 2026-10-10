@@ -19,8 +19,8 @@
             environment.systemPackages = with pkgs; [
               htop
               gdb
-              gnome.dconf-editor
-              dfeet
+              dconf-editor
+              d-spy
               binutils
               ripgrep
             ];
@@ -33,8 +33,8 @@
 
             fonts.packages = with pkgs; [
               noto-fonts
-              noto-fonts-cjk
-              noto-fonts-emoji
+              noto-fonts-cjk-sans
+              noto-fonts-color-emoji
             ];
 
             i18n = {
