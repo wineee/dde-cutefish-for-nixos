@@ -66,6 +66,11 @@ stdenv.mkDerivation (finalAttrs: {
     "-DUID_MIN=1000"
     "-DUID_MAX=29999"
     "-DDDM_INITIAL_VT=7"
+    # STATE_DIR/LOG_FILE default to ${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/...,
+    # which in Nix resolves to <store>/var/... (read-only). Pin them to the
+    # FHS locations the NixOS module provisions (systemd.tmpfiles + users).
+    "-DSTATE_DIR=/var/lib/ddm"
+    "-DLOG_FILE=/var/log/ddm.log"
     # Let the NixOS module generate configuration at runtime instead of
     # baking the store path into Constants.h (upstream ~/ddm/nix precedent).
     "-DCONFIG_FILE=/etc/ddm.conf"
