@@ -81,11 +81,16 @@ in
     xdg.icons.enable = true;
     xdg.portal.enable = mkDefault true;
     xdg.portal.extraPortals = mkDefault [
+      pkgs.deepin.xdg-desktop-portal-dde
       pkgs.xdg-desktop-portal-gtk
     ];
 
-    # https://github.com/NixOS/nixpkgs/pull/247766#issuecomment-1722839259
-    xdg.portal.config.deepin.default = mkDefault [ "gtk" ];
+    # XDG_CURRENT_DESKTOP is set to "DDE" by dde-session (see
+    # environmentsmanager.cpp), so the portal configuration must be keyed
+    # under "dde" to be picked up as dde-portals.conf. Prefer the DDE
+    # backend and fall back to gtk for the interfaces it does not provide
+    # (AppChooser, Print, ...).
+    xdg.portal.config.dde.default = mkDefault [ "dde" "gtk" ];
 
     environment.sessionVariables = {
       NIX_GSETTINGS_OVERRIDES_DIR = "${nixos-gsettings-overrides}/share/gsettings-schemas/nixos-gsettings-overrides/glib-2.0/schemas";
