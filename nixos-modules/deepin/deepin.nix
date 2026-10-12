@@ -177,6 +177,11 @@ in
           dde-application-manager
           deepin-service-manager
           dde-tray-loader
+
+          # Wayland compositor for the Treeland session. ddm launches it via
+          # `systemctl start treeland.service`, and the greeter/session both
+          # run on top of it, so it must be in the system profile (sw/bin).
+          treeland
         ];
         optionalPackages = [
           dde-calendar

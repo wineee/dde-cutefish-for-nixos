@@ -67,13 +67,7 @@ in
       }
     ];
 
-    services.displayManager = {
-      enable = true;
-      generic = {
-        enable = true;
-        execCmd = "exec /run/current-system/sw/bin/ddm";
-      };
-    };
+    services.displayManager.enable = true;
 
     # `services.xserver.enable = true` makes lightdm the fallback display
     # manager when no other DM is selected. ddm is a mutually exclusive
@@ -82,28 +76,37 @@ in
 
     environment.systemPackages = [ cfg.package ];
 
+    # ddm owns both org.freedesktop.DisplayManager and
+    # org.deepin.DisplayManager on the system bus; without its policy files
+    # the D-Bus daemon refuses the NameOwnerChanged for those names.
+    services.dbus.packages = [ cfg.package ];
+
     # The generated ddm.conf is read-only; ddm never rewrites it (it stores
     # runtime state in state.conf under the ddm user's home directory).
     environment.etc."ddm.conf.d/00-nixos.conf".source = cfgFile;
 
-    # ddm talks to dde-seatd over /run/dde-seatd-{control,}.sock and owns
-    # VT 7, so make sure it comes up after the seat daemon and does not
-    # race with the getty on tty7.
-    systemd.services.display-manager = {
-      after = [
-        "systemd-user-sessions.service"
-        "getty@tty7.service"
-        "plymouth-quit.service"
-        "systemd-logind.service"
-        "dde-seatd.service"
-      ];
-      conflicts = [ "getty@tty7.service" ];
+    # Mount the upstream units (ddm.service + dde-seatd.service) instead of
+    # the deprecated generic display-manager integration. The upstream unit
+    # carries the hardening (CapabilityBoundingSet/PrivateIPC/ProtectClock),
+    # `Requires=dde-seatd.service`, and the VT7 getty conflicts.
+    systemd.packages = [
+      cfg.package
+      pkgs.deepin.dde-seatd.out
+    ];
+
+    systemd.services.ddm = {
+      # Upstream ships `[Install] Alias=display-manager.service`, but NixOS
+      # does not process [Install] sections. graphical.target carries
+      # `Wants=display-manager.service`, so aliasing is what pulls ddm in.
+      aliases = [ "display-manager.service" ];
+      wantedBy = [ "graphical.target" ];
+      # Don't kill a running greeter/session on nixos-rebuild switch.
+      restartIfChanged = false;
     };
 
     # The dde-seatd package ships a hardened unit with
     # WantedBy=multi-user.target, but NixOS does not process [Install]
     # sections, so express that explicitly.
-    systemd.packages = [ pkgs.deepin.dde-seatd ];
     systemd.services.dde-seatd.wantedBy = [ "multi-user.target" ];
 
     systemd.tmpfiles.rules = [
@@ -116,6 +119,10 @@ in
     users.groups.dde = { };
     users.groups.nopasswdlogin = { };
 
+    # Upstream sysusers only creates the `dde` greeter account (and the
+    # `nopasswdlogin` group); there is no `ddm` user. `getpwnam("ddm")` in
+    # Configuration.h intentionally misses and falls back to STATE_DIR
+    # (/var/lib/ddm), which the tmpfiles rule below creates and dde owns.
     users.users.dde = {
       description = "DDM greeter account";
       isSystemUser = true;
@@ -126,16 +133,6 @@ in
         "video"
         "render"
       ];
-    };
-
-    # ddm resolves the state.conf directory via getpwnam("ddm"), falling back
-    # to the (read-only) store path baked into STATE_DIR. Point it at a
-    # writable location.
-    users.users.ddm = {
-      description = "DDM state account";
-      isSystemUser = true;
-      group = "dde";
-      home = "/var/lib/ddm";
     };
 
     security.pam.services.ddm.text = ''
