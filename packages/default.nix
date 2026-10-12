@@ -56,6 +56,7 @@ let
       dde-grand-search = callPackage ./core/dde-grand-search { };
       dde-tray-loader = callPackage ./core/dde-tray-loader { };
       deepin-desktop-base = callPackage ./core/deepin-desktop-base { };
+      xdg-desktop-portal-dde = callPackage ./core/xdg-desktop-portal-dde { };
 
       #### Dtk Application
       deepin-calculator = callPackage ./apps/deepin-calculator { };
