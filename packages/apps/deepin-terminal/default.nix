@@ -15,7 +15,8 @@
   libchardet,
   glib,
   icu,
-  xorg,
+  libxcb-wm,
+  libx11,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -58,8 +59,8 @@ stdenv.mkDerivation (finalAttrs: {
     icu
     libuchardet
     libchardet
-    xorg.xcbutilwm
-    xorg.libX11
+    libxcb-wm
+    libx11
   ];
 
   strictDeps = true;

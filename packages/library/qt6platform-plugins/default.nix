@@ -6,7 +6,7 @@
   pkg-config,
   mtdev,
   cairo,
-  xorg,
+  libsm,
   qt6Packages,
 }:
 
@@ -34,7 +34,7 @@ stdenv.mkDerivation (finalAttrs: {
   buildInputs = [
     mtdev
     cairo
-    xorg.libSM
+    libsm
     qt6Packages.qtbase
   ];
 

@@ -8,7 +8,7 @@
   dtkwidget,
   dtkgui,
   udisks2-qt6,
-  xorg,
+  libx11,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -44,7 +44,7 @@ stdenv.mkDerivation (finalAttrs: {
     dtkgui
     udisks2-qt6
     qt6Packages.qtbase
-    xorg.libX11
+    libx11
   ];
 
   cmakeFlags = [ "-DVERSION=${finalAttrs.version}" ];

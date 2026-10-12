@@ -8,7 +8,10 @@
   dtkwidget,
   dtkgui,
   dtkcore,
-  xorg,
+  libx11,
+  libxscrnsaver,
+  libxext,
+  libxcb,
   xscreensaver,
 }:
 
@@ -74,10 +77,10 @@ stdenv.mkDerivation rec {
     qt6Packages.qtbase
     qt6Packages.qtdeclarative
     qt6Packages.qt5compat
-    xorg.libX11
-    xorg.libXScrnSaver
-    xorg.libXext
-    xorg.libxcb
+    libx11
+    libxscrnsaver
+    libxext
+    libxcb
   ];
 
   cmakeFlags = [

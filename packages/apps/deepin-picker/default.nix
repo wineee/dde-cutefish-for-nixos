@@ -6,7 +6,9 @@
   qt6Packages,
   dtkwidget,
   dtkgui,
-  xorg,
+  libxtst,
+  libxcb,
+  libxcb-util,
 }:
 
 stdenv.mkDerivation rec {
@@ -42,9 +44,9 @@ stdenv.mkDerivation rec {
     qt6Packages.qtsvg
     dtkwidget
     dtkgui
-    xorg.libXtst
-    xorg.libxcb
-    xorg.xcbutil
+    libxtst
+    libxcb
+    libxcb-util
   ];
 
   qmakeFlags = [

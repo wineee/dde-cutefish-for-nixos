@@ -16,7 +16,9 @@
   systemd,
   polkit,
   icu,
-  xorg,
+  libxcb,
+  libxext,
+  libxcb-wm,
 }:
 
 stdenv.mkDerivation rec {
@@ -85,9 +87,9 @@ stdenv.mkDerivation rec {
     libnl
     systemd
     icu
-    xorg.libxcb
-    xorg.libXext
-    xorg.xcbutilwm
+    libxcb
+    libxext
+    libxcb-wm
   ];
 
   cmakeFlags = [ "-DVERSION=${version}" ];
