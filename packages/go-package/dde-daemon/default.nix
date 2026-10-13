@@ -81,6 +81,18 @@ buildGoModule rec {
     find . -name "*.go" -exec sed -i \
       's|"/usr/share/dde/zoneinfo|"'$out'/share/dde/zoneinfo|g' {} +
 
+    # Own data files: the Makefile installs misc/dde-daemon/* into
+    # $out/share/dde-daemon, but the Go sources hardcode /usr/share/dde-daemon
+    # (cameraSwitch.sh, supportVirsConf.ini, dbus-udcp.json, system_actions.json).
+    find . -name "*.go" -exec sed -i \
+      's|"/usr/share/dde-daemon|"'$out'/share/dde-daemon|g' {} +
+
+    # Own helper scripts: the Makefile installs misc/libexec/dde-daemon/* into
+    # $out/libexec/dde-daemon, but the keybinding shortcuts hardcode
+    # /usr/libexec/dde-daemon/keybinding/*.sh.
+    find . -name "*.go" -exec sed -i \
+      's|"/usr/libexec/dde-daemon|"'$out'/libexec/dde-daemon|g' {} +
+
     patchShebangs .
   '';
 

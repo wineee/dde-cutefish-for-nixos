@@ -97,6 +97,17 @@ stdenv.mkDerivation (finalAttrs: {
     # Redirect systemd user unit install to our output
     find . -name "CMakeLists.txt" -exec \
       sed -i "s|\''${SYSTEMD_USER_UNIT_DIR}|$out/lib/systemd/user|g" {} +
+
+    # DDEShellConfig.cmake.in exports the install dirs as
+    # "@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_*_INSTALL_DIR@", i.e. baked-in absolute
+    # paths pointing at *this* store path. Downstream packages (dde-launchpad,
+    # dde-tray-loader, ...) then install into dde-shell's read-only output.
+    # Re-export them relative so they resolve against each consumer's own prefix.
+    sed -i \
+      -e 's|@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_PACKAGE_INSTALL_DIR@|''${CMAKE_INSTALL_DATADIR}/dde-shell|' \
+      -e 's|@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_PLUGIN_INSTALL_DIR@|''${CMAKE_INSTALL_LIBDIR}/dde-shell|' \
+      -e 's|@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_TRANSLATION_INSTALL_DIR@|''${CMAKE_INSTALL_DATADIR}/dde-shell|' \
+      misc/DDEShellConfig.cmake.in
   '';
 
   # Inject QML paths for DTK modules that install to non-standard lib/qt6/qml.
