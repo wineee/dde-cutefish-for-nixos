@@ -18,13 +18,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "deepin-compressor";
-  version = "6.5.34";
+  version = "6.5.36";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "deepin-compressor";
     rev = finalAttrs.version;
-    hash = "sha256-5L3tnfwXP/tiRk4Po7oEqN+nGwi4OuqVSvEq4mpuXzc=";
+    hash = "sha256-hyBdaqZTN1Nur7d8el6QI/F/n9bEqfKtoZM4FsUR5Gg=";
   };
 
   postPatch = ''

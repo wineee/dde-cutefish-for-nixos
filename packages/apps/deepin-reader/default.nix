@@ -35,6 +35,12 @@ stdenv.mkDerivation rec {
   };
 
   postPatch = ''
+    # CMake >= 4 applies add_compile_options/add_link_options(-pie) to shared
+    # libraries too, breaking the link with `undefined reference to main`.
+    # Drop -pie; nix hardens separately.
+    substituteInPlace CMakeLists.txt \
+      --replace-fail "    -pie" ""
+
     # Use the Qt6::lrelease imported target instead of a distro hardcoded path
     substituteInPlace cmake/translation-generate.cmake \
       --replace-fail 'set(QT_LRELEASE "/lib/qt''${QT_VERSION_MAJOR}/bin/lrelease")' \

@@ -67,11 +67,11 @@ be re-enabled one by one as it is upgraded.
 | treeland | 0.11.0 | Qt6 | Wayland compositor (vendored waylib + wlroots) |
 | deepin-terminal | 6.5.40 | Qt6 | first app upgraded to Qt6           |
 | deepin-calculator | 6.5.40 | Qt6 | upgraded to Qt6 (Dtk6 Widget)       |
-| deepin-compressor | 6.5.34 | Qt6 | Qt6 (Dtk6 + KF6); pzip + plugins   |
+| deepin-compressor | 6.5.36 | Qt6 | Qt6 (Dtk6 + KF6); pzip + plugins   |
 | deepin-draw | 6.5.43 | Qt6 | Qt6 (Dtk6 Widget)                   |
 | deepin-shortcut-viewer | 5.5.6 | Qt6 | Qt6 (Dtk6 Widget); was qmake/Qt5  |
 | deepin-editor | 6.7.0 | Qt6 | Qt6 (Dtk6 + KF6 + QtWebEngine)    |
-| deepin-music | 7.0.68 | Qt6 | Qt6 (Dtk6 + QtMultimedia + libvlc)   |
+| deepin-music | 7.0.70 | Qt6 | Qt6 (Dtk6 + QtMultimedia + libvlc)   |
 | deepin-picker | 6.0.12 | Qt6 | Qt6 (Dtk6 Widget); qmake/xcb        |
 | deepin-reader | 6.6.2 | Qt6 | Qt6 (Dtk6 + WebEngine + bundled pdfium) |
 | deepin-screensaver | 6.5.11 | Qt6 | Qt6 (Dtk6 Widget+Gui, cmake)       |
@@ -407,6 +407,12 @@ be re-enabled one by one as it is upgraded.
 - **dde-account-faces** `1.0.19`. installPhase now also creates
   `icons/default -> animal/raccoon.png` so AccountsService has a default avatar
   for the greeter (Debian provides it via alternatives).
+- **deepin-compressor** `6.5.34` -> `6.5.36`. Routine bump.
+- **deepin-music** `7.0.68` -> `7.0.70`. Routine bump.
+- **deepin-reader** `6.6.2`. Fixed CMake >= 4 link failure: upstream adds
+  `-pie` via `add_compile_options`/`add_link_options`, which breaks the shared
+  `libdeepin-pdfium-reader` link (`undefined reference to main`); dropped `-pie`
+  in postPatch (nix hardens separately).
 
 ## Removed (abandoned upstream)
 
