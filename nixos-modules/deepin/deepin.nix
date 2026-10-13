@@ -228,5 +228,13 @@ in
       dde-application-manager
       deepin-service-manager
     ];
+
+    # treeland.service is an upstream `linked` unit (no NixOS drop-in by
+    # default), so it does not get the default PATH that NixOS injects via
+    # enableDefaultPath. systemd's built-in PATH has no coreutils/grep on
+    # NixOS, so treeland.sh's `realpath`/`grep` fail with exit 127. Declare
+    # a non-empty path to force the drop-in (and thus the default PATH
+    # injection) and make Xwayland visible to treeland-xwayland's execvp().
+    systemd.services.treeland.path = [ pkgs.xwayland ];
   };
 }

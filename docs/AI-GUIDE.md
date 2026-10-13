@@ -63,6 +63,8 @@
 - ✅ NixOS 模块清理：移除已删包的引用，默认 session 改为 `deepin`，
   `deepin-anything` 模块已注释（暂不启用）。
 - ⏳ 阻塞项：无（所有已记录 blocker 均已解决）。
+- 🖥️ VM 调试：DDM + Treeland 启动链路已打通（0 failed units），登录画面
+  待最后一项 output enable 问题解决。见第 9 节。
 
 详见 `docs/development.md` 的「Maintained packages」表。
 
@@ -149,3 +151,46 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
 1. `packages/apps/` 仍有一批应用待升级（由另一 AI 并行负责，提交时注意不碰其文件）。
 2. 未来窗管：treeland（当前已删 deepin-kwin/dwayland/deepin-wayland-protocols）。
 3. `deepin-anything`：模块已注释，待内核模块 + 用户态工具准备好后再启用。
+
+## 9. VM 调试状态与已知限制（treeland 登录链路）
+
+> 调试入口：`vm/flake.nix`（`nixosConfigurations.vm`），启用
+> `services.desktopManager.deepin` + `services.displayManager.ddm`，QEMU 用
+> `virtio-vga-gl` + `gtk,gl=on`，SSH 转发 `host:2222 → guest:22`。
+
+### 已打通
+
+- **全链路 active、0 failed units**：`dde-seatd`、`ddm`、`treeland`、
+  `display-manager`、`dde-system-daemon`（注册 D-Bus `Accounts1`/`Display1`/
+  `Daemon1` 等）均正常。
+- **treeland 启动链**：libseat(seatd) → DRM(virtio_gpu) → Xwayland `:0`
+  running → LockScreen 插件加载。
+- **账户修复**：`dde-daemon.nix` 创建 `deepin-daemon`（附组 `netdev`）与
+  `deepin-admin-daemon`；`app-services.nix` 删除了错误的 `dde-dconfig-daemon`
+  用户（上游 sysusers 只建 `deepin-daemon`）。修复前 `dde-dconfig-daemon`
+  因 `Unknown user 'deepin-daemon'` 以 217/USER 失败。
+- **PATH 修复**：`deepin.nix` 加 `systemd.services.treeland.path =
+  [ pkgs.xwayland ]`。treeland.service 是上游 `linked` unit（无 NixOS
+  drop-in），不注入默认 PATH，导致 `treeland.sh` 的 `realpath`/`grep` exit
+  127、`treeland-xwayland` 的 `execvp("Xwayland")` 找不到二进制。
+
+### 已知限制（待解决）
+
+1. **output 未 enable**：treeland 日志 `Temporarily disabled output during
+   initial scan "Virtual-1"` 后无 `Enabled output`。DConfig
+   `org.desktopspec.ConfigManager` 已注册、`org.deepin.dde.treeland.output`
+   资源可读（width/height/x 均为默认 0，即无已保存模式），但
+   `restoreInitialOutputConfiguration` 未把 output 重新 enable，QEMU 里
+   仍显示 `Display output is not active`。定位到源码
+   `src/seat/helper.cpp` 的 `restoreExtensionModeFromConfig()` 应无条件
+   `outputObject->enable()`，尚未确认为何未触发。
+2. **登录界面缺默认头像**：`QtIcon: Cannot open:
+   file:///var/lib/AccountsService/icons/default`。宿主 deepin 有该 symlink
+   （指向 `icons/animal/raccoon.png`），VM 缺失。
+3. **treeland unit 与宿主差异**：VM 由 NixOS 生成，`NoNewPrivileges=true`
+   （宿主为 `false`，注释说明 NVIDIA setuid 需要）；宿主另有
+   `StandardOutput=null`、`AmbientCapabilities=CAP_IPC_OWNER` 等。若后续
+   NVIDIA/真实硬件异常，优先对齐这些项。
+4. **DSG_DATA_DIRS 噪声日志**：`dde-dconfig-daemon` 报大量
+   `Can't load meta file from local prefix: ""`（tray-loader/dock/network
+   等 app 的 meta 未安装），不影响 treeland 自身 DConfig，可后续清理。

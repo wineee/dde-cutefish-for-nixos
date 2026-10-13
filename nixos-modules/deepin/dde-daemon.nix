@@ -36,6 +36,23 @@
 
     environment.pathsToLink = [ "/lib/deepin-daemon" ];
 
+    # Upstream dde-daemon sysusers (dde-daemon.conf) creates these accounts;
+    # the shipped systemd units (dde-dconfig-daemon, deepin-*-sound, ...)
+    # run as deepin-daemon / deepin-admin-daemon.
+    users.groups.deepin-daemon = { };
+    users.users.deepin-daemon = {
+      description = "DDE daemon account";
+      isSystemUser = true;
+      group = "deepin-daemon";
+      extraGroups = [ "netdev" ];
+    };
+    users.groups.deepin-admin-daemon = { };
+    users.users.deepin-admin-daemon = {
+      description = "DDE admin daemon account";
+      isSystemUser = true;
+      group = "deepin-admin-daemon";
+    };
+
   };
 
 }
