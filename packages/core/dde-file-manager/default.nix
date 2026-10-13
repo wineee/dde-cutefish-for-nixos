@@ -15,6 +15,8 @@
   dde-shell,
   dde-tray-loader,
   deepin-service-manager,
+  qt6integration,
+  qt6platform-plugins,
   # File manager deps
   util-dfm,
   deepin-pdfium,
@@ -79,6 +81,8 @@ stdenv.mkDerivation (finalAttrs: {
     dde-shell
     dde-tray-loader
     deepin-service-manager
+    qt6integration
+    qt6platform-plugins
 
     # File manager specific
     util-dfm
@@ -139,6 +143,50 @@ stdenv.mkDerivation (finalAttrs: {
       -e "s|DESTINATION /etc/|DESTINATION $out/etc/|g" \
       {} +
 
+    # Hardcoded FHS paths that upstream still ships in 6.6.6 (all confirmed
+    # compiled into the built .so files). Data under /usr/share is merged into the
+    # system profile by environment.pathsToLink in the NixOS module.
+    substituteInPlace assets/scripts/file-manager.sh \
+      --replace-fail "/usr/libexec/dde-file-manager" "$out/libexec/dde-file-manager"
+
+    substituteInPlace src/plugins/filemanager/dfmplugin-vault/utils/vaultdefine.h \
+      --replace-fail "/usr/bin/deepin-compressor" "deepin-compressor"
+
+    substituteInPlace src/plugins/filemanager/dfmplugin-avfsbrowser/utils/avfsutils.cpp \
+      --replace-fail "/usr/bin/mountavfs" "mountavfs" \
+      --replace-fail "/usr/bin/umountavfs" "umountavfs"
+
+    substituteInPlace src/plugins/common/dfmplugin-menu/extendmenuscene/extendmenu/dcustomactionparser.cpp \
+      src/plugins/common/dfmplugin-menu/oemmenuscene/oemmenu.cpp \
+      --replace-fail "/usr/etc/deepin" "$out/etc/deepin"
+
+    substituteInPlace src/tools/upgrade/dialog/processdialog.cpp \
+      --replace-fail "/usr/libexec/dde-file-manager" "$out/libexec/dde-file-manager" \
+      --replace-fail "/usr/bin/dde-shell" "${dde-shell}/bin/dde-shell"
+
+    substituteInPlace src/dfm-base/file/local/localfilehandler.cpp \
+      src/plugins/common/dfmplugin-fileoperations/fileoperationsevent/fileoperationseventreceiver.cpp \
+      --replace-fail "/usr/lib/deepin-daemon" "/run/current-system/sw/lib/deepin-daemon"
+
+    substituteInPlace src/plugins/desktop/ddplugin-background/backgroundservice.cpp \
+      src/plugins/desktop/ddplugin-wallpapersetting/wallpapersettings.cpp \
+      --replace-fail "/usr/share/backgrounds" "/run/current-system/sw/share/backgrounds"
+
+    substituteInPlace src/plugins/desktop/ddplugin-background/backgroundmanager.cpp \
+      --replace-fail "/usr/share/wallpapers" "/run/current-system/sw/share/wallpapers"
+
+    substituteInPlace src/plugins/desktop/ddplugin-canvas/watermask/watermaskcontainer.cpp \
+      src/plugins/desktop/ddplugin-canvas/watermask/watermasksystem.cpp \
+      --replace-fail "/usr/share/deepin" "/run/current-system/sw/share/deepin"
+
+    substituteInPlace src/services/diskencrypt/helpers/crypttabhelper.cpp \
+      src/services/diskencrypt/dbus/diskencryptsetup.cpp \
+      --replace-fail "/usr/bin/sudo" "/run/wrappers/bin/sudo"
+
+    substituteInPlace src/services/diskencrypt/globaltypesdefine.h \
+      --replace-fail "/usr/share/applications/dfm-reencrypt.desktop" \
+        "$out/share/applications/dfm-reencrypt.desktop"
+
     # Override dde-shell install dirs after find_package(DDEShell) — the imported
     # cmake config sets non-cache variables pointing to dde-shell's store path
     sed -i '/find_package(DDEShell REQUIRED)/a\
@@ -175,15 +223,15 @@ QImage _disabled_appimageThumbnailCreator(const QString &filePath, ThumbnailSize
 QImage ThumbnailCreators::pptxThumbnailCreator'
   '';
 
-  # Fix hardcoded /usr/bin paths in installed service files
+  # Installed .desktop/.policy/.service files keep upstream's /usr paths.
+  # /usr/bin/false belongs to entries with SystemdService= (dbus delegates
+  # activation to systemd and ignores Exec), so point it at a real file.
   postInstall = ''
-    find $out -name "*.service" -exec sed -i \
-      -e "s|/usr/bin/dde-file-manager|$out/bin/dde-file-manager|g" \
-      -e "s|/usr/bin/dde-desktop|$out/bin/dde-desktop|g" \
-      -e "s|/usr/bin/dde-select-dialog|$out/bin/dde-select-dialog|g" \
-      -e "s|/usr/bin/dde-file-dialog|$out/bin/dde-file-dialog|g" \
-      -e "s|/usr/bin/deepin-diskencrypt-service|$out/bin/deepin-diskencrypt-service|g" \
-      -e "s|/usr/bin/deepin-service-manager|${deepin-service-manager}/bin/deepin-service-manager|g" \
+    find $out -type f \( -name "*.desktop" -o -name "*.policy" -o -name "*.service" \) -exec sed -i \
+      -e "s|/usr/bin/false|/run/current-system/sw/bin/false|g" \
+      -e "s|/usr/bin/|$out/bin/|g" \
+      -e "s|/usr/libexec/|$out/libexec/|g" \
+      -e "s|/usr/share/|$out/share/|g" \
       {} +
   '';
 
