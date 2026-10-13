@@ -53,27 +53,28 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   postPatch = ''
-    # Disable tests/example (unconditionally added, no BUILD_TESTING guard)
-    sed -i '/add_subdirectory.*tests/d' dconfig-center/CMakeLists.txt
-    sed -i '/add_subdirectory.*example/d' dconfig-center/CMakeLists.txt
+    # tests/example are added unconditionally (no BUILD_TESTING guard).
+    substituteInPlace dconfig-center/CMakeLists.txt \
+      --replace-fail 'add_subdirectory("example")' '# example: disabled for NixOS' \
+      --replace-fail 'add_subdirectory("tests")' '# tests: disabled for NixOS'
 
-    # Fix hardcoded /usr paths
-    find . -name "CMakeLists.txt" -exec sed -i \
-      -e "s|/etc/|$out/etc/|g" \
-      -e "s|/usr/share|$out/share|g" \
-      -e "s|/usr/lib|$out/lib|g" \
-      -e "s|/usr/bin|$out/bin|g" {} +
+    # DSG metadata comes from many packages and is merged into the system
+    # profile, so the CLI tools must not fall back to the FHS dir.
+    substituteInPlace dconfig-center/dde-dconfig/main.cpp \
+      dconfig-center/dde-dconfig-editor/main.cpp \
+      --replace-fail '"/usr/share/dsg:/var/lib/linglong/entries/share/dsg"' \
+                     '"/run/current-system/sw/share/dsg"'
 
-    # Fix D-Bus and systemd service files (including .in templates)
-    find . \( -name "*.service" -o -name "*.service.in" \) -exec sed -i \
-      -e "s|/usr/bin|$out/bin|g" \
-      -e "s|/usr/lib|$out/lib|g" \
-      -e "s|/usr/share/dsg|/run/current-system/sw/share/dsg|g" {} +
+    substituteInPlace dconfig-center/dde-dconfig-daemon/services/dde-dconfig-daemon.service \
+      --replace-fail "/usr/bin/dde-dconfig-daemon" "$out/bin/dde-dconfig-daemon" \
+      --replace-fail "DSG_DATA_DIRS=/usr/share/dsg:/var/lib/linglong/entries/share/dsg" \
+                     "DSG_DATA_DIRS=/run/current-system/sw/share/dsg" \
+      --replace-fail "ReadOnlyPaths=/usr/share/dsg -/var/lib/linglong/entries/share/dsg" \
+                     "ReadOnlyPaths=/run/current-system/sw/share/dsg"
 
-    # Fix systemd unit paths
-    find . -name "CMakeLists.txt" -exec sed -i \
-      -e 's|''${systemd_USER_UNIT_DIR}|'"$out/lib/systemd/user"'|g' \
-      -e 's|''${SYSTEMD_USER_UNIT_DIR}|'"$out/lib/systemd/user"'|g' {} +
+    substituteInPlace dconfig-center/dde-dconfig-daemon/services/org.desktopspec.ConfigManager.service \
+      dconfig-center/dde-dconfig-daemon/misc/deepin-log-config/dde-dconfig-daemon.json \
+      --replace-fail "/usr/bin/dde-dconfig-daemon" "$out/bin/dde-dconfig-daemon"
   '';
 
   meta = {
