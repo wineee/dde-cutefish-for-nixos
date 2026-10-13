@@ -36,26 +36,21 @@ stdenv.mkDerivation (finalAttrs: {
     "-DCMAKE_INSTALL_SYSCONFDIR=${placeholder "out"}/etc"
   ];
 
-  # Override the compile-time plugin config and library search paths.
-  # By default, deepin-service-manager hardcodes its own store path for
-  # SERVICE_CONFIG_DIR and SERVICE_LIB_DIR.  Other packages (dde-appearance,
-  # dde-daemon, etc.) install their plugin JSON configs and .so libraries
-  # into their own store paths, which are linked into
-  # /run/current-system/sw/ via environment.pathsToLink.
-  preConfigure = ''
-    sed -i 's|"\''${CMAKE_INSTALL_PREFIX}/share/deepin-service-manager/"|"/run/current-system/sw/share/deepin-service-manager/"|' \
-      src/CMakeLists.txt
-    sed -i 's|"\''${CMAKE_INSTALL_FULL_LIBDIR}/deepin-service-manager/"|"/run/current-system/sw/lib/deepin-service-manager/"|' \
-      src/CMakeLists.txt
-  '';
+  postPatch = ''
+    # SERVICE_CONFIG_DIR / SERVICE_LIB_DIR default to this package's own store
+    # path, but plugin JSON and .so come from other packages and are merged
+    # into /run/current-system/sw by environment.pathsToLink.
+    substituteInPlace src/CMakeLists.txt \
+      --replace-fail ''${CMAKE_INSTALL_PREFIX}/share/deepin-service-manager/ /run/current-system/sw/share/deepin-service-manager/ \
+      --replace-fail ''${CMAKE_INSTALL_FULL_LIBDIR}/deepin-service-manager/ /run/current-system/sw/lib/deepin-service-manager/
 
-  # Fix hardcoded /usr/bin paths in systemd service files
-  postInstall = ''
-    find $out -name "*.service" -exec sed -i \
-      -e "s|/usr/bin/deepin-service-manager|$out/bin/deepin-service-manager|g" \
-      -e "s|/usr/bin/|$out/bin/|g" \
-      -e "s|/usr/lib/|$out/lib/|g" \
-      {} +
+    substituteInPlace misc/deepin-service-manager.service.in \
+      misc/deepin-service-group@.service.in \
+      misc/deepin-service-plugin@.service.in \
+      --replace-fail /usr/bin/deepin-service-manager "$out/bin/deepin-service-manager"
+
+    substituteInPlace misc/deepin-log-config/org.deepin.service.manager.json \
+      --replace-fail /usr/bin/deepin-service-manager "$out/bin/deepin-service-manager"
   '';
 
   meta = {
