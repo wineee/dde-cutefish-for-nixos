@@ -12,6 +12,17 @@ let
     {
       #### LIBRARIES
       # Upgraded and maintained (Qt6):
+      # lucenepp: newer than nixpkgs to provide Lucene::NGramTokenizer,
+      # required by dde-file-manager >= 6.6.6 textindex service.
+      lucenepp = pkgs.lucenepp.overrideAttrs (old: rec {
+        version = "3.0.9-unstable-2026-05-30";
+        src = pkgs.fetchFromGitHub {
+          owner = "luceneplusplus";
+          repo = "LucenePlusPlus";
+          rev = "70e46961c38ffe1f218ba5349fc9de668a667a6d";
+          hash = "sha256-j7/FVrwQexY/c5FXVRMOyr5QVvSi1+CP1vKECSl8It0=";
+        };
+      });
       dtkcommon = callPackage ./library/dtkcommon { };
       dtkcore = callPackage ./library/dtkcore { };
       dtkgui = callPackage ./library/dtkgui { };
@@ -30,8 +41,6 @@ let
       gsettings-qt6 = callPackage ./library/gsettings-qt6 { };
       udisks2-qt6 = callPackage ./library/udisks2-qt6 { };
       qt6mpris = callPackage ./library/qt6mpris { };
-
-      # TODO: upgrade to Qt6 and re-enable
       util-dfm = callPackage ./library/util-dfm { };
 
       #### CORE

@@ -13,13 +13,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "dde-application-manager";
-  version = "1.2.45";
+  version = "1.2.62";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "dde-application-manager";
     rev = finalAttrs.version;
-    hash = "sha256-HeHVjO3+sKwnkMbA19XbIVpR6iqpOKxk2w0VbxTgmZ0=";
+    hash = "sha256-RY5hKW8ze+cTNE1+u71j9b3qCAjWj+VjKGXCXuURoAc=";
   };
 
   postPatch = ''

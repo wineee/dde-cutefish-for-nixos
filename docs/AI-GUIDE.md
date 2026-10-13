@@ -39,7 +39,7 @@
 
 - ✅ 已升级并维护：`dtkcommon`/`dtklog`/`dtkcore`/`dtkgui`/`dtkwidget`/
   `dtkdeclarative`/`dtksystemsettings`（统一 6.7.50 / 6.6.22，Qt6）、
-  `qt6integration`/`qt6platform-plugins`（6.0.50）、`treeland-protocols`（0.6.0）。
+  `qt6integration`/`qt6platform-plugins`（6.0.50）、`treeland-protocols`（0.7.0）。
 - ✅ 应用：`deepin-terminal`（6.5.40，第一个 Qt6 应用）。
 - ✅ 支撑库：`deepin-pdfium`、`docparser`、`gio-qt`、`udisks2-qt6`、`qt6mpris`、
   `util-dfm`。

@@ -19,13 +19,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "dde-clipboard";
-  version = "6.1.35";
+  version = "6.1.36";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "dde-clipboard";
     rev = finalAttrs.version;
-    hash = "sha256-3lwf7RUQiKn73YZ5DCW+xMGbJbZCtZDXswbcR5p5xBM=";
+    hash = "sha256-6B6bSH5NUcW6Sze7e//WMGuV95bUAmfFwTAo+umefdo=";
   };
 
   nativeBuildInputs = [

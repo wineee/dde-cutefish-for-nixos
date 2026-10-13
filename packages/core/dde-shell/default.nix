@@ -29,13 +29,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "dde-shell";
-  version = "2.0.52";
+  version = "2.0.57";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "dde-shell";
     rev = finalAttrs.version;
-    hash = "sha256-Yw0b6Ica3uiNCjmiBlCGB3DJaAfpKPhb/l+cwuYdQ1g=";
+    hash = "sha256-zp1REp+Cd8Ho8ImCLacyglwspP7h7aPuxSy46vKUsDQ=";
   };
 
   nativeBuildInputs = [
@@ -86,20 +86,26 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   postPatch = ''
+    # Upstream compiles with -Werror; Qt 6.9 deprecates QSortFilterProxyModel::
+    # invalidateFilter() which upstream still calls, so drop -Werror to keep
+    # deprecated-declarations warnings non-fatal.
+    substituteInPlace CMakeLists.txt \
+      --replace-fail "add_compile_options(\$<\$<COMPILE_LANGUAGE:C,CXX>:-Werror>)" ""
     # Fix hardcoded /etc paths
     find . -name "CMakeLists.txt" -exec \
       sed -i "s|/etc/|$out/etc/|g" {} +
     # Redirect systemd user unit install to our output
     find . -name "CMakeLists.txt" -exec \
       sed -i "s|\''${SYSTEMD_USER_UNIT_DIR}|$out/lib/systemd/user|g" {} +
-    # Fix hardcoded tray plugin dirs — plugins are symlinked via pathsToLink
-    sed -i 's|/usr/lib/dde-dock/|/run/current-system/sw/lib/dde-dock/|g' \
-      panels/dock/loadtrayplugins.h
   '';
 
   # Inject QML paths for DTK modules that install to non-standard lib/qt6/qml.
   qtWrapperArgs = [
     "--prefix" "QML2_IMPORT_PATH" ":" "${dtkdeclarative}/lib/qt6/qml"
+    # dde-shell discovers third-party shell/tray plugins symlinked into the
+    # system profile via environment.pathsToLink (see the NixOS module).
+    "--suffix" "DDE_SHELL_PLUGIN_PATH" ":" "/run/current-system/sw/lib/dde-shell"
+    "--suffix" "DDE_SHELL_PACKAGE_PATH" ":" "/run/current-system/sw/share/dde-shell"
   ];
 
   # Override QtWayland.Compositor QML module in the application directory.

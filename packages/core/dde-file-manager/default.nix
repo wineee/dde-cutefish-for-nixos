@@ -33,6 +33,7 @@
   lcms2,
   ffmpegthumbnailer,
   taglib,
+  minizip,
   libxcb,
   libX11,
   util-linux,
@@ -44,13 +45,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "dde-file-manager";
-  version = "6.5.121";
+  version = "6.6.6";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "dde-file-manager";
     rev = finalAttrs.version;
-    hash = "sha256-YbKmtDnjzWPz5AFZkwObpzteta5xcJfAdZvNuQ5A2Ro=";
+    hash = "sha256-lQ1MDuyCJYC7liKboKv8VwlAv3nqHqCw+H5ErUwXy9Q=";
   };
 
   nativeBuildInputs = [
@@ -98,6 +99,7 @@ stdenv.mkDerivation (finalAttrs: {
     lcms2
     ffmpegthumbnailer
     taglib
+    minizip
     libxcb
     libX11
     util-linux
@@ -107,6 +109,7 @@ stdenv.mkDerivation (finalAttrs: {
     systemd
     kdePackages.syntax-highlighting
     kdePackages.polkit-qt-1
+    kdePackages.kidletime
   ];
 
   cmakeFlags = [
@@ -119,6 +122,16 @@ stdenv.mkDerivation (finalAttrs: {
 
   # Fix hardcoded paths and missing deps
   postPatch = ''
+    # Qt 6.11 removed the char16_t overload of QString::arg(); ch.unicode()
+    # returns char16_t, so cast to uint to match the integral overload.
+    substituteInPlace src/plugins/filemanager/dfmplugin-disk-encrypt-entry/utils/encryptutils.cpp \
+      --replace-fail "ch.unicode(), 2, 16" "static_cast<uint>(ch.unicode()), 2, 16"
+
+    # Disable the ocr-extractor plugin — it requires dtk6ocr which is not
+    # packaged (upstream repo linuxdeepin/dtk6ocr no longer exists).
+    sed -i '/add_subdirectory(ocr-extractor)/d' \
+      src/apps/dde-file-manager-extractor/plugins/CMakeLists.txt
+
     # Fix /etc/ hardcoded paths in services
     find . -name "CMakeLists.txt" -exec sed -i \
       -e "s|DESTINATION /etc/systemd/system|DESTINATION $out/lib/systemd/system|g" \

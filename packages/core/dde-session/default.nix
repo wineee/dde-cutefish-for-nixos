@@ -23,13 +23,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "dde-session";
-  version = "2.0.33";
+  version = "2.0.34";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "dde-session";
     rev = finalAttrs.version;
-    hash = "sha256-WpNP9B/T4w1GQMZzmwpcmnoAZNk52rTlc34XeM3rXAo=";
+    hash = "sha256-faXUkJTA4bfA+oIVE/kaiPbll+nEbJMUREi8/K493fI=";
   };
 
   nativeBuildInputs = [

@@ -11,13 +11,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "deepin-service-manager";
-  version = "1.0.21";
+  version = "1.0.24";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "deepin-service-manager";
     rev = finalAttrs.version;
-    hash = "sha256-D3igB2sb3Tiqa5gY0ZyOwczMMh6ZMo/gpvLycgZv1LY=";
+    hash = "sha256-LAIO5bWE8nm/8v6CIoaw4MfQcpUU13+v4srUyqyvScw=";
   };
 
   nativeBuildInputs = [

@@ -22,6 +22,9 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook preInstall
     mkdir -p $out/var/lib/AccountsService
     cp -r icons $out/var/lib/AccountsService/
+    # AccountsService looks up this path for the greeter's default avatar.
+    # Debian provides it via alternatives; create the symlink directly here.
+    ln -s animal/raccoon.png $out/var/lib/AccountsService/icons/default
     runHook postInstall
   '';
 

@@ -44,21 +44,21 @@ be re-enabled one by one as it is upgraded.
 | dde-daemon | 6.1.107 | n/a | Go system/session daemon (16 binaries) |
 | deepin-desktop-schemas | 6.0.13 | n/a | Go gschema build tool + schemas |
 | startdde | 6.1.6 | n/a | Go session starter |
-| dde-application-manager | 1.2.45 | Qt6 | Qt6 (Dtk6 Core + systemd + treeland-protocols) |
-| deepin-service-manager | 1.0.21 | Qt6 | Qt6 (Dtk6 Core + libqdbusservice) |
-| dde-tray-loader | 2.0.27 | Qt6 | Qt6 (Dtk6 + KF6WindowSystem) |
-| dde-shell | 2.0.52 | Qt6 | Qt6 (Dtk6 + WaylandCompositor) |
-| dde-file-manager | 6.5.121 | Qt6 | Qt6 (Dtk6 + DDE shell + dfm6); desktop plugin |
+| dde-application-manager | 1.2.62 | Qt6 | Qt6 (Dtk6 Core + systemd + treeland-protocols) |
+| deepin-service-manager | 1.0.24 | Qt6 | Qt6 (Dtk6 Core + libqdbusservice) |
+| dde-tray-loader | 2.0.42 | Qt6 | Qt6 (Dtk6 + KF6WindowSystem) |
+| dde-shell | 2.0.57 | Qt6 | Qt6 (Dtk6 + WaylandCompositor) |
+| dde-file-manager | 6.6.6 | Qt6 | Qt6 (Dtk6 + DDE shell + dfm6); desktop plugin |
 | dde-polkit-agent | 6.0.24 | Qt6 | Qt6 (Dtk6 + polkit-qt6 + DDE shell) |
 | dde-app-services | 1.0.46 | Qt6 | Qt6 (Dtk6 Core+Gui+Widget + systemd) |
 | dde-session-ui | 6.0.50 | Qt6 | Qt6 (Dtk6 Widget + xcb-ewmh) |
-| dde-session | 2.0.33 | Qt6 | Qt6 (Dtk6 Tools); kwin_x11 dropped |
+| dde-session | 2.0.34 | Qt6 | Qt6 (Dtk6 Tools); kwin_x11 dropped |
 | dde-session-shell | 6.0.68 | Qt6 | snipe repo; greeter skipped |
-| dde-control-center | 6.1.109 | Qt6 | Qt6 (Dtk6 + DDEShell + polkit-qt6) |
-| dde-network-core | 2.0.102 | Qt6 | Qt6 (Dtk6 + KF6NetworkManagerQt) |
-| dde-launchpad | 2.0.48 | Qt6 | Qt6 (Dtk6 + DDE shell + appstream-qt) |
+| dde-control-center | 6.1.110 | Qt6 | Qt6 (Dtk6 + DDEShell + polkit-qt6) |
+| dde-network-core | 2.0.103 | Qt6 | Qt6 (Dtk6 + KF6NetworkManagerQt) |
+| dde-launchpad | 2.0.49 | Qt6 | Qt6 (Dtk6 + DDE shell + appstream-qt) |
 | dde-appearance | 1.1.86 | Qt6 | Qt6 (Dtk6 + KF6 + gsettings-qt6) |
-| dde-clipboard | 6.1.35 | Qt6 | Qt6 (Dtk6 + DDE shell + tray-loader) |
+| dde-clipboard | 6.1.36 | Qt6 | Qt6 (Dtk6 + DDE shell + tray-loader) |
 | dde-grand-search | 6.1.1 | Qt6 | Qt6 (Dtk6 + dfm6-search + qdbus-service) |
 | gsettings-qt6 | 1.1.1 | Qt6 | new; Qt6 build of ubports gsettings-qt |
 | dde-device-formatter | 1.5.11 | Qt6 | was qmake/Qt5; now cmake/Qt6 |
@@ -379,6 +379,34 @@ be re-enabled one by one as it is upgraded.
   plugin search dir), and stops installing to `/etc/NetworkManager/conf.d`.
   Extra build deps: `wayland-protocols` (FindWaylandProtocols via ECM) and
   `libsysprof-capture` (glib-2.0's `Requires.private` chain).
+- **dde-application-manager** `1.2.45` -> `1.2.62`. Routine bump.
+- **deepin-service-manager** `1.0.21` -> `1.0.24`. Routine bump.
+- **dde-tray-loader** `2.0.27` -> `2.0.42`. Routine bump.
+- **dde-shell** `2.0.52` -> `2.0.57`. Upstream moved tray-plugin loading out of
+  process into systemd-managed dde-tray-loader services (commit 16d7d64), which
+  deleted `panels/dock/loadtrayplugins.{h,cpp}`; the corresponding postPatch sed
+  is gone. Restored the `DDE_SHELL_PLUGIN_PATH`/`DDE_SHELL_PACKAGE_PATH`
+  qtWrapperArgs (dropped in the previous bump) so third-party shell/tray plugins
+  symlinked into `/run/current-system/sw/{lib,share}/dde-shell` are discovered.
+  Added a postPatch to strip upstream's new `add_compile_options(-Werror)` — Qt
+  6.11 deprecates `QSortFilterProxyModel::invalidateFilter()` which the new
+  `panels/dock/tray/ksortfilterproxymodel.cpp` still calls.
+- **dde-launchpad** `2.0.48` -> `2.0.49`. Routine bump.
+- **dde-clipboard** `6.1.35` -> `6.1.36`. Routine bump.
+- **dde-control-center** `6.1.109` -> `6.1.110`. Routine bump.
+- **dde-network-core** `2.0.102` -> `2.0.103`. Routine bump.
+- **dde-session** `2.0.33` -> `2.0.34`. Routine bump.
+- **dde-file-manager** `6.5.121` -> `6.6.6`. New deps: `minizip` and
+  `kdePackages.kidletime` (KF6IdleTime) for the textindex service; upstream
+  also gained an ocr-extractor plugin requiring the removed
+  `linuxdeepin/dtk6ocr`, so that subdirectory is skipped in postPatch. Fixed a
+  Qt 6.11 compile error in `encryptutils.cpp` (`ch.unicode()` returns char16_t
+  with no matching `QString::arg` overload; cast to uint). Bumped `lucenepp` to
+  a post-3.0.9 revision that provides `Lucene::NGramTokenizer` (used by the new
+  textindex `profile/` sources).
+- **dde-account-faces** `1.0.19`. installPhase now also creates
+  `icons/default -> animal/raccoon.png` so AccountsService has a default avatar
+  for the greeter (Debian provides it via alternatives).
 
 ## Removed (abandoned upstream)
 

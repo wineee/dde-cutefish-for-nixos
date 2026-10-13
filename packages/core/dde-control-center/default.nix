@@ -28,13 +28,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "dde-control-center";
-  version = "6.1.109";
+  version = "6.1.110";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "dde-control-center";
     rev = finalAttrs.version;
-    hash = "sha256-PlZsPU2xqQubhI4i42mqZk1v3YJ83tNoDCj9uJElDA0=";
+    hash = "sha256-YWWguQNJXUaXn0r7p7ZEBjwIvl67bzYtj9m31lfxxhw=";
   };
 
   postPatch = ''
