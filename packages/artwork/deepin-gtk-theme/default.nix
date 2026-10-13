@@ -31,6 +31,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     homepage = "https://github.com/linuxdeepin/deepin-gtk-theme";
     license = lib.licenses.gpl3Plus;
     platforms = lib.platforms.unix;
-    teams = [ lib.teams.deepin ];
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

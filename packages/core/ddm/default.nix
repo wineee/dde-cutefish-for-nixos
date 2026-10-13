@@ -88,5 +88,6 @@ stdenv.mkDerivation (finalAttrs: {
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
     mainProgram = "ddm";
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

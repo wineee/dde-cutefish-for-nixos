@@ -47,6 +47,6 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://github.com/linuxdeepin/dtklog";
     license = lib.licenses.lgpl21Plus;
     platforms = lib.platforms.linux;
-    teams = [ lib.teams.deepin ];
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

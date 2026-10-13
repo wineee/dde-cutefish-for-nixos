@@ -29,6 +29,6 @@ stdenv.mkDerivation rec {
       asl20
     ];
     platforms = lib.platforms.linux;
-    teams = [ lib.teams.deepin ];
+    maintainers = with lib.maintainers; [ wineee ];
   };
 }

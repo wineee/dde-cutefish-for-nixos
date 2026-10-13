@@ -110,5 +110,6 @@ stdenv.mkDerivation (finalAttrs: {
     pkgConfigModules = [
       "gsettings-qt6"
     ];
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

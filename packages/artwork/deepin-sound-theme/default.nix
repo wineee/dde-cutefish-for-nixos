@@ -22,6 +22,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     homepage = "https://github.com/linuxdeepin/deepin-sound-theme";
     license = lib.licenses.gpl3Plus;
     platforms = lib.platforms.linux;
-    teams = [ lib.teams.deepin ];
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

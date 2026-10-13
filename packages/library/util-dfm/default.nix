@@ -65,5 +65,6 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://github.com/linuxdeepin/util-dfm";
     license = lib.licenses.gpl3Plus;
     platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

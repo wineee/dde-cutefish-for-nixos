@@ -179,5 +179,6 @@ stdenv.mkDerivation (finalAttrs: {
       asl20
     ];
     platforms = platforms.linux;
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

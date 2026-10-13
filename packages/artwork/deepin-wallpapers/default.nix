@@ -40,6 +40,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       cc-by-sa-30
     ];
     platforms = lib.platforms.linux;
-    teams = [ lib.teams.deepin ];
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

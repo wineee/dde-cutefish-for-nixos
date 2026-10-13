@@ -7,7 +7,7 @@
 {
 
   meta = {
-    maintainers = lib.teams.deepin.members;
+    maintainers = with lib.maintainers; [ wineee ];
   };
 
   ###### interface

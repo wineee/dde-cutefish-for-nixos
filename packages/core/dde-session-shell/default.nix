@@ -138,6 +138,6 @@ if (DISABLE_DSS_SNIPE)'
     homepage = "https://github.com/linuxdeepin/dde-session-shell-snipe";
     license = lib.licenses.gpl3Plus;
     platforms = lib.platforms.linux;
-    teams = [ lib.teams.deepin ];
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

@@ -66,5 +66,6 @@ stdenv.mkDerivation (finalAttrs: {
     license = lib.licenses.mit;
     platforms = lib.platforms.linux;
     mainProgram = "dde-seatd";
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })

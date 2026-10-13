@@ -50,6 +50,6 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://github.com/linuxdeepin/deepin-shortcut-viewer";
     license = licenses.gpl3Plus;
     platforms = platforms.linux;
-    teams = [ teams.deepin ];
+    maintainers = with lib.maintainers; [ wineee ];
   };
 })
