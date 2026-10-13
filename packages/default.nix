@@ -30,6 +30,8 @@ let
       dtkdeclarative = callPackage ./library/dtkdeclarative { };
       dtksystemsettings = callPackage ./library/dtksystemsettings { };
       dtklog = callPackage ./library/dtklog { };
+      # DTK 生态：Qt 平台主题/插件（qt6integration 依赖 dtkwidget，
+      # qt6platform-plugins 解包 qtbase 私有 xcb 头），归入 DTK 文档。
       qt6platform-plugins = callPackage ./library/qt6platform-plugins { };
       qt6integration = callPackage ./library/qt6integration { };
       treeland-protocols = callPackage ./library/treeland-protocols { };
@@ -38,7 +40,6 @@ let
       deepin-pdfium = callPackage ./library/deepin-pdfium { };
       docparser = callPackage ./library/docparser { };
       gio-qt = callPackage ./library/gio-qt { };
-      gsettings-qt6 = callPackage ./library/gsettings-qt6 { };
       udisks2-qt6 = callPackage ./library/udisks2-qt6 { };
       qt6mpris = callPackage ./library/qt6mpris { };
       util-dfm = callPackage ./library/util-dfm { };

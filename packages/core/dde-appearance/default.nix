@@ -8,7 +8,7 @@
   kdePackages,
   dtkcore,
   dtkgui,
-  gsettings-qt6,
+  lomiri-qt6,
   deepin-service-manager,
   glib,
   gtk3,
@@ -48,7 +48,7 @@ stdenv.mkDerivation (finalAttrs: {
     kdePackages.kglobalaccel
     dtkcore
     dtkgui
-    gsettings-qt6
+    lomiri-qt6.gsettings-qt
     deepin-service-manager
     glib
     gtk3
@@ -78,6 +78,11 @@ stdenv.mkDerivation (finalAttrs: {
     # Fix timezone data path
     substituteInPlace src/service/modules/common/commondefine.h \
       --replace-fail '"/usr/share/zoneinfo/zone1970.tab"' '"${tzdata}/share/zoneinfo/zone1970.tab"'
+
+    # nixpkgs lomiri-qt6.gsettings-qt 的 .pc 只提供 -I.../include/qt6/QGSettings，
+    # 不支持 deepin 的 `#include <QGSettings/QGSettings>`；改用标准风格。
+    substituteInPlace src/service/modules/api/themes.cpp \
+      --replace-fail '#include <QGSettings/QGSettings>' '#include <QGSettings>'
 
     # Fix hardcoded /usr/share paths to use $out
     substituteInPlace src/service/modules/api/compatibleengine.cpp \

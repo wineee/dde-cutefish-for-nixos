@@ -15,6 +15,8 @@
 | dtkwidget | 6.7.50 | Qt6 | dtkgui + cups + libstartup_notification | 控件库，提供 Dtk6Widget cmake |
 | dtkdeclarative | 6.7.50 | Qt6 | dtkgui + qtdeclarative + qtshadertools + qt5compat | QML 扩展 |
 | dtksystemsettings | 6.6.22 | Qt6 | dtkcore + libxcrypt | 系统设置辅助 |
+| qt6integration | 6.0.50 | Qt6 | dtkwidget | Qt 平台主题插件（DTK 生态） |
+| qt6platform-plugins | 6.0.50 | Qt6 | qtbase 私有 xcb 头 | Qt 平台插件 xcb（DTK 生态） |
 
 ## 通用约定
 
@@ -100,6 +102,19 @@
     NixOS 由 `dde-account-faces` + `deepin-daemon` 提供，不改。
   - `src/login/dloginsession.cpp` 的 `/etc/xdg` 是 XDG 标准。
 - 无 gsettings/dbus service/systemd unit。
+
+### qt6integration（DTK 生态）
+- Qt 平台主题插件（chameleon 风格等），装到 `$out/${qtbase.qtPluginPrefix}`。
+- 依赖 `dtkwidget`（DTK 控件库），故归入 DTK 文档。
+- `DTK_VERSION` 是**自身项目版本**（非 DTK 版本），传 `finalAttrs.version` 正确
+  （上游 archlinux PKGBUILD 同款）。
+- 无硬编码 FHS 路径、无 gsettings/dbus service/systemd unit。
+
+### qt6platform-plugins（DTK 生态）
+- Qt 平台插件（xcb），需 qtbase 私有头：`postUnpack` 从 `qtbase.src` 解包
+  `src/plugins/platforms/xcb` 到 `xcb/libqt6xcbqpa-dev/${version}`。
+- `DTK_VERSION` 同样是自身版本；`DTK_VERSION_MAJOR` 源码硬编码 "6"。
+- 无硬编码 FHS 路径、无 gsettings/dbus service/systemd unit。
 
 ## 已知遗留
 

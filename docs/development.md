@@ -57,10 +57,9 @@ be re-enabled one by one as it is upgraded.
 | dde-control-center | 6.1.110 | Qt6 | Qt6 (Dtk6 + DDEShell + polkit-qt6) |
 | dde-network-core | 2.0.103 | Qt6 | Qt6 (Dtk6 + KF6NetworkManagerQt) |
 | dde-launchpad | 2.0.49 | Qt6 | Qt6 (Dtk6 + DDE shell + appstream-qt) |
-| dde-appearance | 1.1.86 | Qt6 | Qt6 (Dtk6 + KF6 + gsettings-qt6) |
+| dde-appearance | 1.1.86 | Qt6 | Qt6 (Dtk6 + KF6 + lomiri-qt6.gsettings-qt) |
 | dde-clipboard | 6.1.36 | Qt6 | Qt6 (Dtk6 + DDE shell + tray-loader) |
 | dde-grand-search | 6.1.1 | Qt6 | Qt6 (Dtk6 + dfm6-search + qdbus-service) |
-| gsettings-qt6 | 1.1.1 | Qt6 | new; Qt6 build of ubports gsettings-qt |
 | dde-device-formatter | 1.5.11 | Qt6 | was qmake/Qt5; now cmake/Qt6 |
 | dde-calendar | 6.6.3 | Qt6 | Qt6 (Dtk6 Core+Gui+Widget + libical) |
 | ddm | 0.4.0 | Qt6 | SDDM fork display manager; cmake/Qt6 |
@@ -323,12 +322,11 @@ be re-enabled one by one as it is upgraded.
   `dtk6*`-suffixed alias set is needed. Added `openssl` (1.4.5 links
   `OpenSSL::Crypto` in dfm-burn) and `-DCMAKE_BUILD_TYPE=Release` (avoids the
   default Debug build pulling `BUILD_UNIT_TESTS=ON`).
-- **gsettings-qt6** (new). Qt6 build of ubports `gsettings-qt` 1.1.1 (copied
-  from nixpkgs `lomiri/development/gsettings-qt` but pinned to Qt6 via
-  `ENABLE_QT6=ON`). Adds the extra `-I@QT_FULL_INCLUDE_DIR@` Cflags so
-  `#include <QGSettings/QGSettings>` resolves (nixpkgs' `lomiri-qt6.gsettings-qt`
-  only exposes `include/qt6/QGSettings`, breaking that include style). Needed
-  by dde-appearance (and later dde-session / dde-session-shell).
+- **gsettings-qt6 移除独立定义**：原样复用 nixpkgs `lomiri-qt6.gsettings-qt`
+  1.1.1（不 fork、不 override）。nixpkgs 版 `.pc` 只支持 `#include <QGSettings>`；
+  deepin 下游用 `#include <QGSettings/QGSettings>` 的 dde-appearance 在包内
+  postPatch 改为前者。dde-appearance/dde-network-core 直接用
+  `lomiri-qt6.gsettings-qt` 作为 buildInput。
 - **dde-app-services** `1.0.25` -> `1.0.46`. Qt6 (Dtk6 Core+Gui+Widget +
   systemd). Disables unconditional tests/example subdirs; broad `/usr` sed.
 - **dde-session-ui** `6.0.20` -> `6.0.50`. Qt6 (Dtk6 Widget + xcb-ewmh +
@@ -337,8 +335,8 @@ be re-enabled one by one as it is upgraded.
   appstream-qt + qtwayland). Requires dde-shell >= 2.0.52 (xdgactivation.h).
   postConfigure redirects dde-shell install dirs; postInstall writes on-disk
   qmldir for its 3 QML modules (embedded in launchpadcommon.so).
-- **dde-appearance** `1.1.29` -> `1.1.86`. Qt6 (Dtk6 + KF6 + gsettings-qt6 +
-  deepin-service-manager). Replaces `/usr/share/zoneinfo` with `${tzdata}`.
+- **dde-appearance** `1.1.29` -> `1.1.86`. Qt6 (Dtk6 + KF6 + lomiri-qt6.gsettings-qt +
+  deepin-service-manager). Replaces `/usr/share/zoneinfo` with `${tzdata}`;
 - **dde-clipboard** `6.0.11` -> `6.1.35`. Qt6 (Dtk6 + DDE shell + tray-loader +
   gio-qt6). Hardlinks `-lgtest`; redirects `/etc/xdg/autostart`.
 - **dde-grand-search** `5.5.2` -> `6.1.1`. Qt6 (Dtk6 + dfm6-search +
@@ -370,7 +368,7 @@ be re-enabled one by one as it is upgraded.
   `DDE_CONTROL_CENTER_PLUGIN_INSTALL_DIR` isn't double-prefixed (nixpkgs passes
   `CMAKE_INSTALL_LIBDIR` as an absolute path).
 - **dde-network-core** `2.0.34` -> `2.0.102`. Qt6 (Dtk6 Core+Widget +
-  KF6NetworkManagerQt + libnm + gsettings-qt6 + curl). Needs
+  KF6NetworkManagerQt + libnm + lomiri-qt6.gsettings-qt + curl). Needs
   dde-control-center (dcc-network plugin), dde-session-shell (dss plugin) and
   dde-tray-loader (provides the `DdeDock` cmake package). Patches
   `dock-network-plugin` to `find_package(... WaylandClientPrivate ...)` (Qt

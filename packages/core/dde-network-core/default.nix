@@ -12,7 +12,7 @@
   dde-control-center,
   dde-session-shell,
   dde-tray-loader,
-  gsettings-qt6,
+  lomiri-qt6,
   glib,
   networkmanager,
   wayland-protocols,
@@ -54,7 +54,7 @@ stdenv.mkDerivation (finalAttrs: {
     dde-control-center
     dde-session-shell
     dde-tray-loader
-    gsettings-qt6
+    lomiri-qt6.gsettings-qt
 
     # KDE
     kdePackages.networkmanager-qt

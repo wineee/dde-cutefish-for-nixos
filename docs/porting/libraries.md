@@ -10,10 +10,8 @@
 | deepin-pdfium | 1.5.8 | linuxdeepin | PDF 渲染（bundled pdfium） | .pc double-prefix 已处理 |
 | docparser | 1.0.26 | linuxdeepin | 全文搜索文档解析 | .pc double-prefix 已处理；-pie 已 drop |
 | gio-qt | 0.0.16 | linuxdeepin | GIO 的 Qt 封装 | 仅 qt6；CMAKE_INSTALL_LIBDIR=lib |
-| gsettings-qt6 | 1.1.1 | ubports(GitLab) | GSettings Qt6 绑定 | 非 linuxdeepin；lomiri cmake-extras |
-| qt6integration | 6.0.50 | linuxdeepin | Qt 平台主题插件 | 无 FHS 路径 |
+| gsettings-qt6 | 1.1.1 | nixpkgs lomiri-qt6.gsettings-qt | GSettings Qt6 绑定 | 原样复用 nixpkgs；下游自适配 |
 | qt6mpris | 1.0.0.1-1deepin2 | deepin-community | MPRIS Qt6 绑定 | qmake；路径已 patch |
-| qt6platform-plugins | 6.0.50 | linuxdeepin | Qt 平台插件（xcb） | 解包 qtbase xcb 私有头 |
 | treeland-protocols | 0.7.0 | linuxdeepin | Wayland 协议 XML | 纯协议文件 |
 | udisks2-qt6 | 6.0.1 | linuxdeepin | UDisks2 D-Bus Qt6 绑定 | .pc double-prefix 已处理 |
 | util-dfm | 1.4.5 | linuxdeepin | 文件管理器底层库 | .pc 用 _FULL_ 路径，正确 |
@@ -43,31 +41,19 @@
 - 仅 qt6 库 `libgio-qt6.so` + `gio-qt6.pc`。
 
 ### gsettings-qt6
-- 来源 **GitLab ubports/development/core/gsettings-qt**，非 linuxdeepin。
-- Qt6 构建，需 `lomiri.cmake-extras`。
-- **postPatch**（4 处）：
-  1. `WERROR` → `ENABLE_WERROR`（上游改名遗漏）
-  2. `.pc` libdir/includedir 修 double-prefix
-  3. `Cflags` 加 `@QT_FULL_INCLUDE_DIR@`（支持 `#include <QGSettings/...>` 风格）
-  4. QML 模块装到标准 qt6/qml 路径
-- **postInstall**：QML 模块重命名 `GSettings` → `GSettings.1.0`（版本化模块名）。
-
-### qt6integration
-- Qt 平台主题插件（chameleon 风格等），装到 `$out/${qtbase.qtPluginPrefix}`。
-- `DTK_VERSION` 是**自身项目版本**（非 DTK 版本），传 `finalAttrs.version` 正确
-  （上游 archlinux PKGBUILD 同款）。
-- 无硬编码 FHS 路径。
+- **原样复用 nixpkgs 的 `lomiri-qt6.gsettings-qt`**（不 fork、不 override）。
+- nixpkgs 版 `.pc` 只提供 `-I.../include/qt6/QGSettings`，即只支持
+  `#include <QGSettings>` 风格；deepin 下游用 `#include <QGSettings/QGSettings>`
+  的包需在包内 postPatch 自行改标准风格：
+  - **dde-appearance**：`themes.cpp` 里 `#include <QGSettings/QGSettings>` →
+    `#include <QGSettings>`（已在包内 postPatch 处理）。
+  - **dtkcore**：`gsettingsbackend.cpp` 已用 `QT_HAS_INCLUDE` 自适应，无需改。
+- QML 模块装到 `$out/qt6/qml/GSettings.1.0`（nixpkgs 已处理版本化模块名）。
 
 ### qt6mpris
 - 来源 **deepin-community/qt6mpris**（qmake 项目），非 linuxdeepin。
 - `postPatch` 把 qmake 变量（`$$[QT_INSTALL_LIBS]` 等）替换为 `$out` 绝对路径。
 - 无 FHS 路径问题（qmake 项目已全量重定向）。
-
-### qt6platform-plugins
-- Qt 平台插件（xcb），需 qtbase 私有头：`postUnpack` 从 `qtbase.src` 解包
-  `src/plugins/platforms/xcb` 到 `xcb/libqt6xcbqpa-dev/${version}`。
-- `DTK_VERSION` 同样是自身版本；`DTK_VERSION_MAJOR` 源码硬编码 "6"。
-- 无硬编码 FHS 路径。
 
 ### treeland-protocols
 - 纯 Wayland 协议 XML（treeland 私有协议），无代码、无路径。
@@ -89,9 +75,9 @@
 
 这些非 DTK 支撑库质量较高，主要坑点都已在定义中处理：
 
-1. **double-prefix**：docparser / udisks2-qt6 / deepin-pdfium / gsettings-qt6
+1. **double-prefix**：docparser / udisks2-qt6 / deepin-pdfium
    通过 postInstall/postPatch sed 修复；gio-qt 通过相对 `CMAKE_INSTALL_LIBDIR=lib`
-   规避；util-dfm 上游直接用 `_FULL_` 变量。
+   规避；util-dfm 上游直接用 `_FULL_` 变量；gsettings-qt6 原样复用 nixpkgs 已处理。
 2. **-pie**：docparser 已 drop（CMake 4.x shared lib 链接失败）。
 3. **Qt5/Qt6 混建**：gio-qt 移除 qt5.cmake。
 4. **qmake 路径**：qt6mpris 全量重定向 `$$[QT_INSTALL_*]`。
