@@ -23,7 +23,7 @@ be re-enabled one by one as it is upgraded.
 | dtksystemsettings| 6.6.22  | Qt6  | was `dtk6systemsettings`               |
 | qt6platform-plugins | 6.0.50 | Qt6 |                                      |
 | qt6integration | 6.0.50 | Qt6 | depends on dtkwidget                 |
-| treeland-protocols | 0.6.0 | n/a |                                      |
+| treeland-protocols | 0.7.0 | n/a |                                      |
 | dde-seatd | 0.9.3-3 | n/a | renamed libseat-compatible seat daemon |
 | deepin-pdfium | 1.5.8 | Qt6 | PDFium rendering lib (was Qt5 qmake) |
 | docparser | 1.0.26 | n/a | doc content analysis lib (was Qt5) |
@@ -63,8 +63,8 @@ be re-enabled one by one as it is upgraded.
 | gsettings-qt6 | 1.1.1 | Qt6 | new; Qt6 build of ubports gsettings-qt |
 | dde-device-formatter | 1.5.11 | Qt6 | was qmake/Qt5; now cmake/Qt6 |
 | dde-calendar | 6.6.3 | Qt6 | Qt6 (Dtk6 Core+Gui+Widget + libical) |
-| ddm | 0.3.8 | Qt6 | SDDM fork display manager; cmake/Qt6 |
-| treeland | 0.10.0 | Qt6 | Wayland compositor (vendored waylib + wlroots) |
+| ddm | 0.4.0 | Qt6 | SDDM fork display manager; cmake/Qt6 |
+| treeland | 0.11.0 | Qt6 | Wayland compositor (vendored waylib + wlroots) |
 | deepin-terminal | 6.5.40 | Qt6 | first app upgraded to Qt6           |
 | deepin-calculator | 6.5.40 | Qt6 | upgraded to Qt6 (Dtk6 Widget)       |
 | deepin-compressor | 6.5.34 | Qt6 | Qt6 (Dtk6 + KF6); pzip + plugins   |
@@ -99,7 +99,11 @@ be re-enabled one by one as it is upgraded.
   private xcb headers (unpacked from `qt6Packages.qtbase.src`).
 - **qt6integration** `6.0.33` -> `6.0.50`. Qt 6.9 / missing-include patches are
   upstream in 6.0.50, so no fetchpatch needed.
-- **treeland-protocols** `0.4.5` -> `0.6.0`.
+- **treeland-protocols** `0.4.5` -> `0.7.0`.
+- **ddm** `0.3.8` -> `0.4.0`. Display manager for Deepin; cmake/Qt6 build
+  unchanged (same CMake flags and FHS-path patches).
+- **treeland** `0.10.0` -> `0.11.0`. Wayland compositor (vendored waylib +
+  wlroots); rebuilt against treeland-protocols 0.7.0.
 - **deepin-terminal** `6.0.17` -> `6.5.40`. First app upgraded to Qt6 (Dtk6
   Widget). Dropped qt5integration/qt5platform-plugins/chrpath deps; added
   qt5compat, libchardet, libuchardet, glib, icu, xorg.xcbutilwm. Patched out two
@@ -242,7 +246,7 @@ be re-enabled one by one as it is upgraded.
   `-Dlibseat-logind=systemd -Dlibseat-builtin=disabled -Dlibseat-seatd=enabled`.
   Outputs `libdde-seat.pc` and header `dde-seatd/libseat.h` (pkg-config name
   `libdde-seat`, NOT `libseat`).
-- **ddm** new package `0.3.8` (cmake/Qt6). A fork of SDDM used as the Deepin
+- **ddm** new package `0.4.0` (cmake/Qt6). A fork of SDDM used as the Deepin
   display manager. Depends on `pam`/`libsystemd`/`systemd`/`xau`/`wayland-client`
   + `treeland-protocols` (generates `treeland-ddm-v1`). Talks to `dde-seatd` via
   raw unix socket (`/run/dde-seatd-control.sock`) — does NOT link libseat. CMake
@@ -251,7 +255,7 @@ be re-enabled one by one as it is upgraded.
   Installs `DDMConfig.cmake` + `DDM::Common` (required by treeland). Patched the
   hardcoded `/usr/bin/{X,systemctl}` and session-dir defaults to
   `/run/current-system/sw/...`.
-- **treeland** new package `0.10.0` (cmake/Qt6). Wayland compositor based on
+- **treeland** new package `0.11.0` (cmake/Qt6). Wayland compositor based on
   QtQuick + vendored `waylib` + vendored `wlroots` 0.20.2 (both in-tree
   subdirectories; no separate `waylib`/`wlroots` packages). Requires
   `find_package(DDM ... COMPONENTS Common)`, Dtk6 Core/Declarative/SystemSettings,

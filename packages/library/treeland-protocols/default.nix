@@ -7,13 +7,13 @@
 
 stdenv.mkDerivation rec {
   pname = "treeland-protocols";
-  version = "0.6.0";
+  version = "0.7.0";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = pname;
     rev = version;
-    hash = "sha256-ZjMIXItqGyqgPVN8EPKPBGDMcjl4Tos/DhibicRJ1A8=";
+    hash = "sha256-cWMCw0oY5Fvxv1FtIzfwmqiGOddQT7ILpysldmGo44g=";
   };
 
   nativeBuildInputs = [

@@ -47,13 +47,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "treeland";
-  version = "0.10.0";
+  version = "0.11.0";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "treeland";
     rev = finalAttrs.version;
-    hash = "sha256-WjSAa1rsj1B4uHV/OfM+G6n5wLgx5RILdHF0GZZxMNo=";
+    hash = "sha256-YyAVWyflXEvybZpqLYTcBdGSGrjEFQ9A+0yERhPzAlc=";
   };
 
   postPatch = ''

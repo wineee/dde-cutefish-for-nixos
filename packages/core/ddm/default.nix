@@ -16,13 +16,13 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "ddm";
-  version = "0.3.8";
+  version = "0.4.0";
 
   src = fetchFromGitHub {
     owner = "linuxdeepin";
     repo = "ddm";
     rev = finalAttrs.version;
-    hash = "sha256-k+TsNHcYj/AeebrSX/FrIymE6eJRBjGDkz21ophKngM=";
+    hash = "sha256-KoFv17qWr0RsKUyLtuT4uQXrkpSrzdsNqO4Il7sTsJU=";
   };
 
   postPatch = ''
