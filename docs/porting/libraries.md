@@ -7,13 +7,13 @@
 
 | 包 | 版本 | 来源 | 用途 | 备注 |
 |---|---|---|---|---|
-| deepin-pdfium | 1.5.8 | linuxdeepin | PDF 渲染（bundled pdfium） | .pc double-prefix 已处理 |
-| docparser | 1.0.26 | linuxdeepin | 全文搜索文档解析 | .pc double-prefix 已处理；-pie 已 drop |
+| deepin-pdfium | 1.5.8 | linuxdeepin | PDF 渲染（bundled pdfium） | .pc double-prefix 用 patch 修 |
+| docparser | 1.0.26 | linuxdeepin | 全文搜索文档解析 | .pc double-prefix 用 patch 修；-pie 已 drop |
 | gio-qt | 0.0.16 | linuxdeepin | GIO 的 Qt 封装 | 仅 qt6；CMAKE_INSTALL_LIBDIR=lib |
 | gsettings-qt6 | 1.1.1 | nixpkgs lomiri-qt6.gsettings-qt | GSettings Qt6 绑定 | 原样复用 nixpkgs；下游自适配 |
 | qt6mpris | 1.0.0.1-1deepin2 | deepin-community | MPRIS Qt6 绑定 | qmake；路径已 patch |
 | treeland-protocols | 0.7.0 | linuxdeepin | Wayland 协议 XML | 纯协议文件 |
-| udisks2-qt6 | 6.0.1 | linuxdeepin | UDisks2 D-Bus Qt6 绑定 | .pc double-prefix 已处理 |
+| udisks2-qt6 | 6.0.1 | linuxdeepin | UDisks2 D-Bus Qt6 绑定 | .pc double-prefix 用 patch 修 |
 | util-dfm | 1.4.5 | linuxdeepin | 文件管理器底层库 | .pc 用 _FULL_ 路径，正确 |
 | dde-seatd | 0.9.3-3 | linuxdeepin | seatd 服务 | 见 core 文档 |
 
@@ -25,15 +25,15 @@
   `/usr/share/fonts`、`/usr/share/X11/fonts/*`、`/usr/local/share/fonts`——
   这是 pdfium 无 fontconfig 时的兜底扫描；Qt 层通常已通过 fontconfig 提供字体，
   宿主 Deepin 也是这些路径，**不改**。
-- `.pc`：postInstall `sed s|${prefix}/|/|g` 修 double-prefix；产物为
-  `${prefix}//lib`（双斜杠无害，pkg-config/链接器都接受）。
+- `.pc`：`fix-pc-double-prefix.patch` 把 `${prefix}/@CMAKE_INSTALL_LIBDIR@` →
+  `@CMAKE_INSTALL_FULL_LIBDIR@`（同 INCLUDEDIR）。
 - `Config.cmake` 用 `PACKAGE_PREFIX_DIR` 相对定位 + `pkg_check_modules`
   （libopenjp2/lcms2/freetype2/zlib/libpng/libjpeg），正确。
 
 ### docparser
 - **-pie**：CMake >= 4 下 `add_link_options(-pie)` 破坏 shared lib 链接，
   postPatch 已 drop（`-z noexecstack -pie -fPIC` → `-z noexecstack -fPIC`）。
-- `.pc`：postInstall 修 double-prefix（同上）。
+- `.pc`：`fix-pc-double-prefix.patch` 改为 `_FULL_` 变量（同上）。
 
 ### gio-qt
 - 上游同时构建 qt5/qt6；我们 `postPatch` 去掉 `include(qt5.cmake)`（qt5 不在 scope）。
@@ -61,7 +61,9 @@
 
 ### udisks2-qt6
 - UDisks2 D-Bus 接口的 Qt6 绑定（生成 dbus 接口代码，无 dbus service 文件）。
-- `.pc`：postInstall 修 double-prefix。
+- `.pc`：`fix-pc-double-prefix.patch` 把 `${prefix}/@CMAKE_INSTALL_LIBDIR@` →
+  `@CMAKE_INSTALL_FULL_LIBDIR@`（同 INCLUDEDIR），避免 nixpkgs 传绝对路径时
+  double-prefix。
 - `Config.cmake` 正确（`find_dependency(Qt6 Core DBus)` + PACKAGE_PREFIX_DIR）。
 
 ### util-dfm
@@ -75,9 +77,10 @@
 
 这些非 DTK 支撑库质量较高，主要坑点都已在定义中处理：
 
-1. **double-prefix**：docparser / udisks2-qt6 / deepin-pdfium
-   通过 postInstall/postPatch sed 修复；gio-qt 通过相对 `CMAKE_INSTALL_LIBDIR=lib`
-   规避；util-dfm 上游直接用 `_FULL_` 变量；gsettings-qt6 原样复用 nixpkgs 已处理。
+1. **double-prefix**：udisks2-qt6 / deepin-pdfium / docparser 均用
+   `fix-pc-double-prefix.patch` 改为 `_FULL_` 变量；gio-qt 通过相对
+   `CMAKE_INSTALL_LIBDIR=lib` 规避；util-dfm 上游直接用 `_FULL_` 变量
+   （无需任何 patch）；gsettings-qt6 原样复用 nixpkgs 已处理。
 2. **-pie**：docparser 已 drop（CMake 4.x shared lib 链接失败）。
 3. **Qt5/Qt6 混建**：gio-qt 移除 qt5.cmake。
 4. **qmake 路径**：qt6mpris 全量重定向 `$$[QT_INSTALL_*]`。

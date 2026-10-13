@@ -1,0 +1,12 @@
+--- a/udisks2-qt6.pc.in
++++ b/udisks2-qt6.pc.in
+@@ -1,7 +1,7 @@
+ prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+-libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+-includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@/@PROJECT_NAME@
++libdir=@CMAKE_INSTALL_FULL_LIBDIR@
++includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@/@PROJECT_NAME@
+ 
+ Name: @PROJECT_NAME@
+ Description: UDisks2 Library with Qt6

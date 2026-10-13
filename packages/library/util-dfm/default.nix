@@ -55,11 +55,6 @@ stdenv.mkDerivation (finalAttrs: {
     "-DCMAKE_BUILD_TYPE=Release"
   ];
 
-  # Fix pkgconfig double-prefix issue (NixOS uses absolute install dirs)
-  postInstall = ''
-    find $out/lib/pkgconfig -name "*.pc" -exec sed -i "s|\''${prefix}/|/|g" {} +
-  '';
-
   meta = {
     description = "File management utility libraries for DDE (dfm6-io, dfm6-mount, dfm6-burn, dfm6-search)";
     homepage = "https://github.com/linuxdeepin/util-dfm";

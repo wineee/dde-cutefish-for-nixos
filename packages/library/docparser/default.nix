@@ -46,15 +46,15 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   # Fix pkgconfig double-prefix issue (NixOS uses absolute install dirs)
+  patches = [
+    ./fix-pc-double-prefix.patch
+  ];
+
   postPatch = ''
     # CMake >= 4 errors when add_link_options(-pie) is applied to a shared
     # library (undefined reference to main). Drop it; nix hardens separately.
     substituteInPlace CMakeLists.txt \
       --replace-fail '-z noexecstack -pie -fPIC' '-z noexecstack -fPIC'
-  '';
-
-  postInstall = ''
-    sed -i "s|''${prefix}/|/|g" $out/lib/pkgconfig/docparser.pc
   '';
 
   meta = {

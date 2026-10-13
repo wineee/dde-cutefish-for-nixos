@@ -1,0 +1,12 @@
+--- a/deepin-pdfium.pc.in
++++ b/deepin-pdfium.pc.in
+@@ -1,7 +1,7 @@
+ prefix=@CMAKE_INSTALL_PREFIX@
+ exec_prefix=${prefix}
+-libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+-includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@/@TARGET_NAME@
++libdir=@CMAKE_INSTALL_FULL_LIBDIR@
++includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@/@TARGET_NAME@
+ 
+ Name: @TARGET_NAME@
+ Description: @PROJECT_DESCRIPTION@ (Qt@QT_DESIRED_VERSION@ version)

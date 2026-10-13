@@ -27,10 +27,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   dontWrapQtApps = true;
 
-  # Fix pkgconfig double-prefix issue (NixOS uses absolute install dirs)
-  postInstall = ''
-    find $out/lib/pkgconfig -name "*.pc" -exec sed -i "s|''${prefix}/|/|g" {} +
-  '';
+  # nixpkgs passes CMAKE_INSTALL_LIBDIR/INCLUDEDIR as absolute paths, so the
+  # upstream `\${prefix}/@CMAKE_INSTALL_*@` form double-prefixes the .pc.
+  # Use the _FULL_ variants (already absolute) instead.
+  patches = [
+    ./fix-pc-double-prefix.patch
+  ];
 
   buildInputs = [
     qt6Packages.qtbase
