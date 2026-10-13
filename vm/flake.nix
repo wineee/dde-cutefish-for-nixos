@@ -29,6 +29,15 @@
             services.desktopManager.deepin.enable = true;
             services.displayManager.ddm.enable = true;
 
+            # SSH for grabbing boot/session logs from the host.
+            services.openssh = {
+              enable = true;
+              settings = {
+                PermitRootLogin = "no";
+                PasswordAuthentication = true;
+              };
+            };
+
             time.timeZone = "Asia/Shanghai";
 
             fonts.packages = with pkgs; [
@@ -50,7 +59,16 @@
             };
 
             virtualisation = {
-              qemu.options = [ "-device intel-hda -device hda-duplex" ];
+              forwardPorts = [
+                { from = "host"; host.port = 2222; guest.port = 22; }
+              ];
+              qemu.options = [
+                "-vga none"
+                "-device virtio-vga-gl"
+                "-display gtk,gl=on"
+                "-device intel-hda"
+                "-device hda-duplex"
+              ];
               cores = 8;
               memorySize = 8192;
               diskSize = 16384;
