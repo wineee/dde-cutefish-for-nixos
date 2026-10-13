@@ -24,12 +24,12 @@ stdenv.mkDerivation rec {
 
   postPatch = ''
     substituteInPlace com.deepin.Picker.service \
-      --replace "/usr/bin/deepin-picker" "$out/bin/deepin-picker"
+      --replace-fail "/usr/bin/deepin-picker" "$out/bin/deepin-picker"
 
     # Do not rely on distro-specific hardcoded lrelease/lupdate paths
     substituteInPlace deepin-picker.pro \
-      --replace "/usr/lib/qt6/bin/lrelease" "lrelease" \
-      --replace "/usr/lib/qt6/bin/lupdate" "lupdate"
+      --replace-fail "/usr/lib/qt6/bin/lrelease" "lrelease" \
+      --replace-fail "/usr/lib/qt6/bin/lupdate" "lupdate"
   '';
 
   nativeBuildInputs = [

@@ -23,7 +23,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   postPatch = ''
     substituteInPlace com.deepin.Draw.service \
-      --replace "/usr/bin/deepin-draw" "$out/bin/deepin-draw"
+      --replace-fail "/usr/bin/deepin-draw" "$out/bin/deepin-draw"
   '';
 
   nativeBuildInputs = [

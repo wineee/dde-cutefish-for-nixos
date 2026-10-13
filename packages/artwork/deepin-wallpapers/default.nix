@@ -24,8 +24,14 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     # Mirror the Makefile's prepare step: pick the deepin platform variant.
     cp -r deepin/platform/deepin/* deepin/
 
+    # Copy by globbing with find rather than a bare `cp deepin/*.jpg ...`:
+    # an unmatched glob would be passed to cp literally and abort the build
+    # (previously papered over with `|| true`). find + -exec is a no-op when
+    # nothing matches, and still fails loudly if the copy itself fails.
     mkdir -p $out/share/wallpapers/deepin
-    cp -r deepin/*.jpg deepin/*.jpeg deepin/*.png $out/share/wallpapers/deepin/ 2>/dev/null || true
+    find deepin -maxdepth 1 \
+      \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" \) \
+      -exec cp -t $out/share/wallpapers/deepin/ {} +
 
     mkdir -p $out/share/backgrounds
     ln -s $out/share/wallpapers/deepin/desktop.jpg $out/share/backgrounds/default_background.jpg

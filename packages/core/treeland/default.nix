@@ -66,6 +66,9 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail '"/usr/share/wallpapers/deepin/deepin-default.jpg"' '"${deepin-wallpapers}/share/wallpapers/deepin/deepin-default.jpg"'
 
     # systemd unit ExecStartPre/ExecStart/ExecStop /usr/bin and /bin helpers.
+    # NOTE: --replace (not --replace-fail) is deliberate here. Each unit file
+    # contains only a subset of the four patterns, so requiring all four to
+    # match would abort the build. Do not "tidy" this into --replace-fail.
     for f in $(grep -rl -e '/usr/bin/pkill' -e '/usr/bin/systemctl' -e '/usr/bin/llvm-symbolizer' -e 'ExecCondition=/bin/sh' misc/systemd)
     do
       substituteInPlace "$f" \

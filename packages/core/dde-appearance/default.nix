@@ -83,7 +83,7 @@ stdenv.mkDerivation (finalAttrs: {
     substituteInPlace src/service/modules/api/compatibleengine.cpp \
       --replace-fail '"/usr/share/dsg/icons/"' '"'"$out"'/share/dsg/icons/"'
     substituteInPlace src/service/modules/subthemes/customtheme.cpp \
-      --replace-fail '"/usr/share/dde-appearance/' '"'"$out"'/share/dde-appearance/' || true
+      --replace-fail '"/usr/share/dde-appearance/' '"'"$out"'/share/dde-appearance/'
   '';
 
   SYSTEMD_USER_UNIT_DIR = "${placeholder "out"}/lib/systemd/user";

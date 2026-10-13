@@ -36,36 +36,38 @@ stdenv.mkDerivation rec {
     # Dock plugin/popup require dde-dock headers which are not packaged here;
     # build only the main app + daemon + dbus/system servers.
     substituteInPlace CMakeLists.txt \
-      --replace "ADD_SUBDIRECTORY(deepin-system-monitor-plugin)" "" \
-      --replace "ADD_SUBDIRECTORY(deepin-system-monitor-plugin-popup)" ""
+      --replace-fail "ADD_SUBDIRECTORY(deepin-system-monitor-plugin)" "" \
+      --replace-fail "ADD_SUBDIRECTORY(deepin-system-monitor-plugin-popup)" ""
 
     # Drop the global -pie (breaks the daemon MODULE target on CMake 4.x).
     substituteInPlace CMakeLists.txt \
-      --replace "-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -pie -fstack-protector-all" \
-                "-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -fstack-protector-all"
+      --replace-fail "-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -pie -fstack-protector-all" \
+                     "-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -fstack-protector-all"
 
     # Install the privileged backend under the Nix prefix.
     substituteInPlace deepin-system-monitor-system-server/CMakeLists.txt \
-      --replace "/usr/lib/deepin-daemon/" "$out/lib/deepin-daemon/"
+      --replace-fail "/usr/lib/deepin-daemon/" "$out/lib/deepin-daemon/"
 
     # Fix runtime tool/service paths.
     substituteInPlace deepin-system-monitor-main/service/service_manager.cpp \
-      --replace "/usr/bin/pkexec" "${lib.getBin polkit}/bin/pkexec" \
-      --replace "/usr/bin/systemctl" "${lib.getBin systemd}/bin/systemctl"
+      --replace-fail "/usr/bin/pkexec" "${lib.getBin polkit}/bin/pkexec" \
+      --replace-fail "/usr/bin/systemctl" "${lib.getBin systemd}/bin/systemctl"
 
+    # kill/renice live in different files; previously both files got both
+    # substitutions, and the two that did not match were silently ignored.
     substituteInPlace deepin-system-monitor-main/process/process_controller.cpp \
-      deepin-system-monitor-main/process/priority_controller.cpp \
-      --replace "/usr/bin/kill" "${lib.getBin util-linux}/bin/kill" \
-      --replace "/usr/bin/renice" "${lib.getBin util-linux}/bin/renice"
+      --replace-fail "/usr/bin/kill" "${lib.getBin util-linux}/bin/kill"
+    substituteInPlace deepin-system-monitor-main/process/priority_controller.cpp \
+      --replace-fail "/usr/bin/renice" "${lib.getBin util-linux}/bin/renice"
 
     substituteInPlace deepin-system-monitor-server/src/dbusserver.cpp \
-      --replace "/usr/bin/deepin-system-monitor" "$out/bin/deepin-system-monitor"
+      --replace-fail "/usr/bin/deepin-system-monitor" "$out/bin/deepin-system-monitor"
     substituteInPlace deepin-system-monitor-server/com.deepin.SystemMonitorServer.service \
-      --replace "/usr/bin/deepin-system-monitor-server" "$out/bin/deepin-system-monitor-server"
+      --replace-fail "/usr/bin/deepin-system-monitor-server" "$out/bin/deepin-system-monitor-server"
     substituteInPlace deepin-system-monitor-system-server/misc/org.deepin.deepin-system-monitor-system-server.policy \
-      --replace "/usr/bin/deepin-system-monitor" "$out/bin/deepin-system-monitor"
+      --replace-fail "/usr/bin/deepin-system-monitor" "$out/bin/deepin-system-monitor"
     substituteInPlace deepin-system-monitor-system-server/misc/deepin-system-monitor-system-server.service \
-      --replace "/usr/lib/deepin-daemon/deepin-system-monitor-system-server" "$out/lib/deepin-daemon/deepin-system-monitor-system-server"
+      --replace-fail "/usr/lib/deepin-daemon/deepin-system-monitor-system-server" "$out/lib/deepin-daemon/deepin-system-monitor-system-server"
   '';
 
   nativeBuildInputs = [

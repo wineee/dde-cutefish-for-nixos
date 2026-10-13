@@ -593,3 +593,36 @@ adding a line after a `find_package`), edit the unpacked source in
   构建系统里**没有任何引用**，是遗留文件。上游已迁到 dconfig，只装 JSON
   （`dtk_add_config_meta_files`）。
 - `dde-file-manager` / `deepin-system-monitor`：源码里根本没有 gschema。
+
+### 升级时不要照抄 `dde/nixos-unstable-dde-25-flake`
+
+`dde/` 下的那个三方 flake 是早期的 Qt6 参考，质量不高。它带来的写法特点：
+用 `find . -name "*.go" -exec sed -i` 做全局替换替代 nixpkgs 精确的
+`substituteInPlace`，并在命令后挂 `|| true` 吞掉失败。
+
+**已经吃过的一次亏**：Qt6 升级那批提交（尤其是 `64fb51f`、`bc8dae9`）参考了它，
+结果一批针对具体文件的路径修复被替换掉、没有等价补偿。审计时逐条核对过：
+
+| 项 | 结论 |
+| --- | --- |
+| `dde-daemon` 的 `/usr/share/wallpapers`、`/usr/share/uadp` | 上游 6.1.x 已改掉，**无需补** |
+| `dde-grand-search` 的 `fix-dbus-path-for-daemon.diff` | 上游 6.1.1 的 `.service` 已改成直接 `Exec=dde-grand-search-daemon`，patch 失效，**文件已删** |
+| `deepin-reader` 的 `0001-build-tests-with-cpp-14.patch` | `-DBUILD_TESTS=OFF`，tests 不构建，**文件已删** |
+| `dde-file-manager` 的 v23 patch + `-DNIX_DEEPIN_VERSION` | 上游 6.5.x 已移除 `DEEPIN_OS_VERSION` 判定，**删除正确** |
+| `dde-shell` 的 `DDEShellConfig.cmake.in` | **仍需修**：2.0.57 还是把本包的 store 绝对路径写给下游，已用 sed 改成 `${CMAKE_INSTALL_DATADIR}` 形式 |
+| `dde-calendar` 的 dbus 白名单 | **仍需修**：`CALENDAR_SERVICE_AUTO_EXIT` 在非 Debug 构建下必然定义，而 6.6.3 改成精确相等匹配，NixOS 的 `.dde-calendar-wrapped` 会被拒 |
+
+另外 `dde-daemon` 有两处基线和三方**都没有处理**的真 bug，已补：
+`/usr/share/dde-daemon`、`/usr/libexec/dde-daemon`（Makefile 装到 `$out` 下，
+Go 代码却写死 `/usr`）。
+
+**判定方法**：别只看当前包定义有没有某行，去
+`dde/src-dl/<pkg>-<ver>/` 里看上游对应文件到底长什么样（用
+`dde/src-dl/fetch.py <repo> <version>` 下载），再决定要不要补。
+
+### `--replace-fail` 与 `--replace` 的选择
+
+默认一律用 `--replace-fail`：上游改了字符串就应该让构建失败，而不是静默跳过。
+例外只有一种：对**一批文件**做**多个**模式替换、每个文件只命中其中一部分时
+（如 `treeland` 的 systemd unit 处理）。这种情况已在代码里写了注释说明，
+不要"顺手"改成 `--replace-fail`，否则构建会断。

@@ -26,7 +26,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   postPatch = ''
     substituteInPlace pluginmanager.cpp \
-      --replace "/usr/lib/polkit-1-dde/plugins/" "$out/lib/polkit-1-dde/plugins/"
+      --replace-fail "/usr/lib/polkit-1-dde/plugins/" "$out/lib/polkit-1-dde/plugins/"
   '';
 
   nativeBuildInputs = [

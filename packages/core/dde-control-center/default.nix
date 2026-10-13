@@ -39,14 +39,14 @@ stdenv.mkDerivation (finalAttrs: {
 
   postPatch = ''
     # Fix hardcoded paths
-    find . -name "*.cpp" -o -name "*.h" -o -name "*.qml" | xargs sed -i \
+    find . \( -name "*.cpp" -o -name "*.h" -o -name "*.qml" \) -exec sed -i \
       -e 's|/usr/share|/run/current-system/sw/share|g' \
       -e 's|/usr/lib|/run/current-system/sw/lib|g' \
-      -e 's|/usr/bin|/run/current-system/sw/bin|g' || true
+      -e 's|/usr/bin|/run/current-system/sw/bin|g' {} +
 
-    find . -name "*.service" -o -name "*.desktop" | xargs sed -i \
+    find . \( -name "*.service" -o -name "*.desktop" \) -exec sed -i \
       -e "s|/usr/bin|$out/bin|g" \
-      -e "s|/usr/lib|$out/lib|g" || true
+      -e "s|/usr/lib|$out/lib|g" {} +
 
     # Fix CMake install paths
     find . -name "CMakeLists.txt" -exec sed -i \

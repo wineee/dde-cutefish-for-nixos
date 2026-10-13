@@ -34,32 +34,32 @@ stdenv.mkDerivation rec {
 
     # Install into the Nix prefix instead of absolute /usr//etc paths.
     substituteInPlace customscreensaver/saverpic/CMakeLists.txt \
-      --replace "/usr/lib/deepin-screensaver/modules" "$out/lib/deepin-screensaver/modules"
+      --replace-fail "/usr/lib/deepin-screensaver/modules" "$out/lib/deepin-screensaver/modules"
     substituteInPlace customscreensaver/deepin-custom-screensaver/CMakeLists.txt \
-      --replace "/usr/lib/deepin-screensaver/modules" "$out/lib/deepin-screensaver/modules" \
-      --replace "/usr/share/dconfig/overrides" "$out/share/dconfig/overrides" \
-      --replace "/etc/deepin-screensaver/deepin-custom-screensaver" "$out/etc/deepin-screensaver/deepin-custom-screensaver"
+      --replace-fail "/usr/lib/deepin-screensaver/modules" "$out/lib/deepin-screensaver/modules" \
+      --replace-fail "/usr/share/dconfig/overrides" "$out/share/dconfig/overrides" \
+      --replace-fail "/etc/deepin-screensaver/deepin-custom-screensaver" "$out/etc/deepin-screensaver/deepin-custom-screensaver"
 
     # Fix runtime paths embedded in sources
     substituteInPlace src/com.deepin.ScreenSaver.service \
-      --replace "/usr/bin/deepin-screensaver" "$out/bin/deepin-screensaver"
+      --replace-fail "/usr/bin/deepin-screensaver" "$out/bin/deepin-screensaver"
     substituteInPlace src/dbusscreensaver.cpp \
-      --replace "/usr/bin/deepin-screensaver" "$out/bin/deepin-screensaver"
+      --replace-fail "/usr/bin/deepin-screensaver" "$out/bin/deepin-screensaver"
     substituteInPlace src/utils.cpp \
-      --replace "/etc/deepin-screensaver/" "$out/etc/deepin-screensaver/"
+      --replace-fail "/etc/deepin-screensaver/" "$out/etc/deepin-screensaver/"
     substituteInPlace tools/preview/main.cpp \
-      --replace "/usr/lib/xscreensaver" "${xscreensaver}/libexec/xscreensaver"
+      --replace-fail "/usr/lib/xscreensaver" "${xscreensaver}/libexec/xscreensaver"
     substituteInPlace customscreensaver/deepin-custom-screensaver/data/deepin-custom-screensaver.desktop \
-      --replace "/usr/lib/deepin-screensaver/modules/deepin-custom-screensaver" "$out/lib/deepin-screensaver/modules/deepin-custom-screensaver"
+      --replace-fail "/usr/lib/deepin-screensaver/modules/deepin-custom-screensaver" "$out/lib/deepin-screensaver/modules/deepin-custom-screensaver"
 
     # Neutralize the xscreensaver subdir (Debian postinst regeneration).
     substituteInPlace CMakeLists.txt \
-      --replace "add_subdirectory(xscreensaver)" ""
+      --replace-fail "add_subdirectory(xscreensaver)" ""
 
     # Qt6::GuiPrivate is linked but never found (the find_package lists only
     # Gui/Widgets/DBus/Quick); add the missing find_package for it.
     substituteInPlace src/CMakeLists.txt \
-      --replace 'find_package(Qt''${QT_DESIRED_VERSION} REQUIRED COMPONENTS ''${qt_required_components})' \
+      --replace-fail 'find_package(Qt''${QT_DESIRED_VERSION} REQUIRED COMPONENTS ''${qt_required_components})' \
                 'find_package(Qt''${QT_DESIRED_VERSION} REQUIRED COMPONENTS ''${qt_required_components} GuiPrivate)'
   '';
 
