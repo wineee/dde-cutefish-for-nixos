@@ -16,6 +16,7 @@
   libxfixes,
   libcap_ng,
   dde-shell,
+  dde-application-manager,
   dde-polkit-agent,
   dde-session-shell,
   gnome-keyring,
@@ -50,57 +51,80 @@ stdenv.mkDerivation (finalAttrs: {
     libxcursor
     libxfixes
     libcap_ng
+    dde-application-manager
   ];
 
   postPatch = ''
-    # Fix hardcoded /etc paths across all cmake files
-    find . -name "CMakeLists.txt" -exec \
-      sed -i "s|/etc/|$out/etc/|g" {} +
+    # Absolute DESTINATION ignores CMAKE_INSTALL_SYSCONFDIR.
+    substituteInPlace misc/CMakeLists.txt \
+      --replace-fail "DESTINATION /etc/X11/Xsession.d/" "DESTINATION $out/etc/X11/Xsession.d/" \
+      --replace-fail "DESTINATION /etc/profile.d" "DESTINATION $out/etc/profile.d"
+    substituteInPlace tools/dde-oom-score-adj/CMakeLists.txt \
+      --replace-fail "DESTINATION /etc/xdg/autostart/" "DESTINATION $out/etc/xdg/autostart/"
 
-    # No window manager yet (treeland is the future compositor). Drop the
-    # kwin_x11 line from the X11 session template so the rest of the session
-    # graph can still come up.
-    sed -i '/ExecStart=\/usr\/bin\/kwin_x11 --replace/d' \
-      systemd/dde-session-pre.target.wants/dde-session@x11.service
-    sed -i '/kglobalshortcutsrc/d' \
-      systemd/dde-session-pre.target.wants/dde-session@x11.service
+    # Exec paths compiled into the binaries.
+    substituteInPlace src/dde-session/impl/sessionmanager.cpp \
+      --replace-fail '"/usr/bin/dde-lock"' '"${dde-session-shell}/bin/dde-lock"' \
+      --replace-fail '"/usr/libexec/deepin/dde-lock"' '"${dde-session-shell}/libexec/deepin/dde-lock"' \
+      --replace-fail '"/usr/bin/dde-am"' '"${dde-application-manager}/bin/dde-am"' \
+      --replace-fail '"/usr/libexec/dde-session-ctl"' '"$out/libexec/dde-session-ctl"' \
+      --replace-fail '"/usr/lib/deepin-daemon/langselector"' \
+                     '"/run/current-system/sw/lib/deepin-daemon/langselector"' \
+      --replace-fail '"/usr/bin/systemd-detect-virt"' '"${systemd}/bin/systemd-detect-virt"'
 
-    # deepin-keyring-whitebox is not packaged; drop its optional branch.
-    sed -i '/deepin-keyring-whitebox/,+2d' systemd/dde-keyring.service.in
+    substituteInPlace tools/dde-quick-login/lockprocessmanager.cpp \
+      --replace-fail '"/usr/bin/dde-lock"' '"${dde-session-shell}/bin/dde-lock"'
+    substituteInPlace tools/dde-version-checker/main.cpp \
+      --replace-fail '"/usr/lib/deepin-daemon/dde-welcome"' \
+                     '"/run/current-system/sw/lib/deepin-daemon/dde-welcome"'
+
+    # Shell / desktop files, resolved at runtime.
+    substituteInPlace misc/Xsession.d/00deepin-dde-env \
+      --replace-fail '"/usr/bin/dde-session"' '"$out/bin/dde-session"'
+    substituteInPlace misc/Xsession.d/97deepin-keyring-wb \
+      --replace-fail "/usr/lib/systemd/user/dde-keyring.service" \
+                     "$out/share/systemd/user/dde-keyring.service"
+    substituteInPlace tools/dde-oom-score-adj/dde-oom-score-adj.desktop \
+      --replace-fail "/usr/bin/dde-oom-score-adj" "$out/bin/dde-oom-score-adj"
+    substituteInPlace misc/dde-session-loader-wrapper.in \
+      --replace-fail "PATH=/usr/sbin:/usr/bin:/sbin:/bin" "PATH=/run/current-system/sw/bin"
+
+    # D-Bus / systemd units: own binaries and cross-package references.
+    substituteInPlace dbus/org.deepin.dde.Session1.service \
+      --replace-fail "/usr/bin/dde-session" "$out/bin/dde-session"
+    substituteInPlace systemd/dde-session-manager.service.in \
+      --replace-fail "/usr/bin/gdbus" "${glib.bin}/bin/gdbus"
+    substituteInPlace systemd/dde-keyring.service.in \
+      --replace-fail "/usr/bin/gnome-keyring-daemon" "${gnome-keyring}/bin/gnome-keyring-daemon"
+    substituteInPlace systemd/dde-session-core.target.wants/dde-shell@DDE.service \
+      --replace-fail "/usr/bin/dde-shell" "${dde-shell}/bin/dde-shell" \
+      --replace-fail "/usr/bin/systemctl" "/run/current-system/sw/bin/systemctl"
+    substituteInPlace systemd/dde-session-core.target.wants/dde-shell-plugin@org.deepin.ds.desktop.service \
+      --replace-fail "/usr/bin/dde-shell" "${dde-shell}/bin/dde-shell"
+    substituteInPlace systemd/dde-session-initialized.target.wants/dde-lock.service \
+      --replace-fail "/usr/bin/dde-lock" "${dde-session-shell}/bin/dde-lock"
+    substituteInPlace systemd/dde-session-initialized.target.wants/dde-polkit-agent.service \
+      --replace-fail "/usr/lib/polkit-1-dde/dde-polkit-agent" \
+                     "${dde-polkit-agent}/lib/polkit-1-dde/dde-polkit-agent"
+    substituteInPlace systemd/dde-session-pre.target.wants/dde-quick-login@x11.service \
+      --replace-fail "/usr/bin/dde-quick-login" "$out/bin/dde-quick-login"
+    substituteInPlace tools/dde-keyring-checker/dde-keyring-checker.service \
+      --replace-fail "/usr/bin/dde-keyring-checker" "$out/bin/dde-keyring-checker"
+    substituteInPlace tools/dde-version-checker/dde-version-checker.service \
+      tools/dde-version-checker/dde-version-checker@quick-login.service \
+      --replace-fail "/usr/bin/dde-version-checker" "$out/bin/dde-version-checker"
+    substituteInPlace tools/dde-xsettings-checker/dde-xsettings-checker.service \
+      --replace-fail "/usr/bin/dde-xsettings-checker" "$out/bin/dde-xsettings-checker"
+
+    # No X11 window manager (treeland is the compositor): the X11 session unit
+    # is inert on Wayland anyway (ConditionEnvironment=XDG_SESSION_TYPE=%I).
+    substituteInPlace systemd/dde-session-pre.target.wants/dde-session@x11.service \
+      --replace-fail "ExecStart=/usr/bin/kwin_x11 --replace" "# kwin_x11: not packaged"
   '';
 
   cmakeFlags = [
     "-DCMAKE_INSTALL_SYSCONFDIR=${placeholder "out"}/etc"
   ];
-
-  # Fix hardcoded /usr/bin and /usr/lib paths in systemd service files
-  # and D-Bus service files to use Nix store paths.
-  postInstall = ''
-    # Fix own binaries
-    find $out -name "*.service" -exec sed -i \
-      -e "s|/usr/bin/dde-session|$out/bin/dde-session|g" \
-      -e "s|/usr/bin/dde-keyring-checker|$out/bin/dde-keyring-checker|g" \
-      -e "s|/usr/bin/dde-quick-login|$out/bin/dde-quick-login|g" \
-      -e "s|/usr/bin/dde-version-checker|$out/bin/dde-version-checker|g" \
-      -e "s|/usr/bin/dde-xsettings-checker|$out/bin/dde-xsettings-checker|g" \
-      {} +
-
-    # Fix cross-package references
-    find $out -name "*.service" -exec sed -i \
-      -e "s|/usr/bin/dde-shell|${dde-shell}/bin/dde-shell|g" \
-      -e "s|/usr/bin/dde-lock|${dde-session-shell}/bin/dde-lock|g" \
-      -e "s|/usr/lib/polkit-1-dde/dde-polkit-agent|${dde-polkit-agent}/lib/polkit-1-dde/dde-polkit-agent|g" \
-      -e "s|/usr/bin/gnome-keyring-daemon|${gnome-keyring}/bin/gnome-keyring-daemon|g" \
-      -e "s|/usr/bin/gdbus|${glib.bin}/bin/gdbus|g" \
-      -e "s|/usr/bin/systemctl|/run/current-system/sw/bin/systemctl|g" \
-      {} +
-
-    # Fix D-Bus service files
-    find $out -name "*.service" -path "*/dbus-1/*" -exec sed -i \
-      -e "s|/usr/bin/|$out/bin/|g" \
-      -e "s|/usr/lib/|$out/lib/|g" \
-      {} +
-  '';
 
   passthru.providedSessions = [ "deepin" ];
 
