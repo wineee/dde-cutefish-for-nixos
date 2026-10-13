@@ -96,18 +96,23 @@ in
       NIX_GSETTINGS_OVERRIDES_DIR = "${nixos-gsettings-overrides}/share/gsettings-schemas/nixos-gsettings-overrides/glib-2.0/schemas";
     };
 
+    # /lib is already in nixpkgs' default pathsToLink and buildEnv merges
+    # subdirectories, so only /share subtrees have to be listed here.
     environment.pathsToLink = [
-      "/lib/dde-dock/plugins"
-      "/lib/dde-control-center"
-      "/lib/dde-session-shell"
-      "/lib/dde-file-manager"
       "/share/backgrounds"
       "/share/wallpapers"
-      "/share/dde-daemon"
+      "/share/xsessions"
+      "/share/wayland-sessions"
       "/share/dsg"
-      "/share/deepin-themes"
       "/share/deepin"
+      "/share/deepin-themes"
+      "/share/deepin-service-manager"
+      "/share/dde-daemon"
       "/share/dde-shell"
+      "/share/dde-dock"
+      "/share/dde-control-center"
+      "/share/dde-session-shell"
+      "/share/dde-session-ui"
     ];
 
     environment.etc = {
