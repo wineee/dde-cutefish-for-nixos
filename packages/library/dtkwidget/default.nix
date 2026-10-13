@@ -30,6 +30,10 @@ stdenv.mkDerivation (finalAttrs: {
     substituteInPlace src/widgets/dapplication.cpp \
       --replace-fail "auto dataDirs = DStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);" \
                 "auto dataDirs = DStandardPaths::standardLocations(QStandardPaths::GenericDataLocation) << \"$out/share\";"
+    # Optional third-party print-preview settings plugins. NixOS has no
+    # /usr/share; point at the system profile where a module could link them.
+    substituteInPlace src/widgets/dprintpreviewdialog.cpp \
+      --replace-fail '"/usr/share/deepin/dtk/plugins/printsupport"' '"/run/current-system/sw/share/deepin/dtk/plugins/printsupport"'
   '';
 
   nativeBuildInputs = [
@@ -54,6 +58,8 @@ stdenv.mkDerivation (finalAttrs: {
   cmakeFlags = [
     "-DDTK5=OFF"
     "-DBUILD_DOCS=OFF"
+    "-DBUILD_EXAMPLES=OFF"
+    "-DBUILD_PLUGINS=OFF"
     "-DMKSPECS_INSTALL_DIR=${placeholder "dev"}/mkspecs/modules"
   ];
 
