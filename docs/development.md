@@ -531,3 +531,27 @@ picked up from the control-center plugin search dir at runtime).
 unbalanced quoting / parse errors in cmake files. For multi-line edits (or
 adding a line after a `find_package`), edit the unpacked source in
 `dde/src/` with git and generate a patch file instead.
+
+### gsettings override 列表只放真正带 schema 的包
+
+`dde-gsettings-schemas` 的 `gsettingsOverridePackages` 没有 `-d` 存在性判断
+（跟 nixpkgs 的 `gnome.nixos-gsettings-overrides` 一致）：包不带
+`share/gsettings-schemas/<name>/glib-2.0/schemas` 就会让 `cp` 直接失败，而不是
+被静默跳过。所以往列表里加包之前先确认它真的装了 gschema XML。
+
+实测（在已构建的 store 路径上看）：`dde-grand-search`、`startdde`、
+`deepin-desktop-schemas`、`gsettings-desktop-schemas` 有；
+`dde-session-shell`、`dde-file-manager`、`dde-tray-loader`、
+`deepin-system-monitor` 没有，已从列表移除。
+
+这四个都不是我们打包漏了，上游本来就不装（别去"修"它们的 installPhase）：
+
+- `dde-session-shell`：install 规则被 `if (DISABLE_DSS_SNIPE)` 包住
+  （`CMakeLists.txt:473`），只有 v20/Qt5 的非 snipe 分支才装
+  `xml/com.deepin.dde.session-shell.gschema.xml`。我们
+  `DDE_SESSION_SHELL_SNIPE=ON` 走 Qt6 分支，`DISABLE_DSS_SNIPE=FALSE`，
+  所以不装 —— 上游有意为之。
+- `dde-tray-loader`：`src/loader/configs/` 下那两个 `*.gschema.xml` 在整个
+  构建系统里**没有任何引用**，是遗留文件。上游已迁到 dconfig，只装 JSON
+  （`dtk_add_config_meta_files`）。
+- `dde-file-manager` / `deepin-system-monitor`：源码里根本没有 gschema。
