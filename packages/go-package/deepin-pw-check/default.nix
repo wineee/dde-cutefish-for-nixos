@@ -47,6 +47,11 @@ buildGoModule rec {
     sed -i '1i#include <stdlib.h>\n#include <string.h>' tool/pwd_conf_update.c
     substituteInPlace misc/pkgconfig/libdeepin_pw_check.pc \
       --replace-fail "/usr" "$out"
+
+    # The shipped systemd unit hardcodes /usr/libexec; point it at the actual
+    # store path (Makefile installs the binary under $out/libexec/deepin-pw-check).
+    substituteInPlace misc/systemd-service/deepin-passwd-conf.service \
+      --replace-fail '/usr/libexec/deepin-pw-check/deepin-pw-check' "$out/libexec/deepin-pw-check/deepin-pw-check"
   '';
 
   buildPhase = ''

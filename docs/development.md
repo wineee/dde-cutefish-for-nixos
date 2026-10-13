@@ -41,7 +41,7 @@ be re-enabled one by one as it is upgraded.
 | deepin-gettext-tools | 1.0.11 | n/a | was already latest; re-enabled |
 | deepin-pw-check | 6.0.12 | n/a | full build (Go service + C lib + PAM) |
 | dde-api | 6.0.48 | n/a | Go D-Bus service (thumbnails, sound, etc) |
-| dde-daemon | 6.1.107 | n/a | Go system/session daemon (16 binaries) |
+| dde-daemon | 6.1.108 | n/a | Go system/session daemon (16 binaries) |
 | deepin-desktop-schemas | 6.0.13 | n/a | Go gschema build tool + schemas |
 | startdde | 6.1.6 | n/a | Go session starter |
 | dde-application-manager | 1.2.62 | Qt6 | Qt6 (Dtk6 Core + systemd + treeland-protocols) |
@@ -216,7 +216,9 @@ be re-enabled one by one as it is upgraded.
   files) — only bumped version and refreshed `vendorHash`. Dropped the
   `substituteInPlace` on the dbus service file (its `Exec=/bin/false` is
   intentional, no `/usr` path to patch), and the rpm cracklib patch still
-  applies cleanly in 6.0.12.
+  applies cleanly in 6.0.12. 后续修复：systemd unit
+  `deepin-passwd-conf.service` 的 `ExecStart=/usr/libexec/deepin-pw-check/...`
+  硬编码 → `$out/libexec/...`（Makefile 直接 cp 未做替换）。
 - **dde-device-formatter** `0.0.1.16` -> `1.5.11`. Switched from qmake/Qt5 to
   cmake/Qt6 (Dtk6 Widget+Gui). Upstream now uses `qt_add_translations` (no
   more `deepin-gettext-tools` translate scripts). Added `udisks2-qt6` (the
@@ -282,11 +284,14 @@ be re-enabled one by one as it is upgraded.
   `dde-session-ui` buildInput/makeBinPath (runtime PATH is provided by the
   NixOS module). Added `env.CGO_CFLAGS = "-std=gnu11"` (go-gir emits old-style
   `()` declarations that clash with GCC 14). Refreshed `vendorHash`.
+  `6.1.107` -> `6.1.108`：touchpad 扩展开关 + glib loop 修复，vendorHash 不变。
 - **deepin-desktop-schemas** `6.0.7` -> `6.0.13`. Still `buildGoModule` (the
   `override_tool` builds fine in the sandbox — no network needed since it only
   imports go-lib). Refreshed `vendorHash`.
 - **startdde** `6.0.15` -> `6.1.6`. Refreshed `vendorHash`; added
-  `env.CGO_CFLAGS = "-std=gnu11"` (same go-gir/GCC14 issue).
+  `env.CGO_CFLAGS = "-std=gnu11"` (same go-gir/GCC14 issue). 后续修复：
+  `display/color_temp.go` 的 `timeZoneFile=/usr/share/zoneinfo/zone1970.tab`
+  → `${tzdata}/share/zoneinfo/zone1970.tab`（新增 tzdata 依赖）。
 - **dde-application-manager** `1.2.19` -> `1.2.45`. cmake/Qt6 + systemd +
   treeland-protocols + libxkbcommon. Removes Debian dpkg config in postInstall.
 - **deepin-service-manager** `1.0.3` -> `1.0.21`. Rewrote from Qt5 to Qt6

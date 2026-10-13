@@ -15,6 +15,7 @@
   libsecret,
   runtimeShell,
   dbus,
+  tzdata,
 }:
 
 buildGoModule rec {
@@ -39,6 +40,10 @@ buildGoModule rec {
 
     substituteInPlace display/manager.go \
       --replace-fail "/usr/lib/deepin-daemon" "/run/current-system/sw/lib/deepin-daemon"
+
+    # NixOS keeps zoneinfo in the tzdata package, not /usr/share/zoneinfo.
+    substituteInPlace display/color_temp.go \
+      --replace-fail '"/usr/share/zoneinfo/zone1970.tab"' '"${tzdata}/share/zoneinfo/zone1970.tab"'
 
     substituteInPlace misc/lightdm.conf --replace-fail "/usr" "$out"
   '';
