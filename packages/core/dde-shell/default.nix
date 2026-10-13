@@ -110,37 +110,16 @@ stdenv.mkDerivation (finalAttrs: {
       misc/DDEShellConfig.cmake.in
   '';
 
-  # Inject QML paths for DTK modules that install to non-standard lib/qt6/qml.
+  # No QML2_IMPORT_PATH needed: wrapQtAppsHook already collects every build
+  # input's ${qtQmlPrefix} into NIXPKGS_QT6_QML_IMPORT_PATH, which nixpkgs'
+  # patched libQt6Qml reads. dde-shell's own QML is found via the compiled-in
+  # DDE_SHELL_QML_INSTALL_DIR ($out/lib/qt6/qml) in frame/qmlengine.cpp.
   qtWrapperArgs = [
-    "--prefix" "QML2_IMPORT_PATH" ":" "${dtkdeclarative}/lib/qt6/qml"
     # dde-shell discovers third-party shell/tray plugins symlinked into the
     # system profile via environment.pathsToLink (see the NixOS module).
     "--suffix" "DDE_SHELL_PLUGIN_PATH" ":" "/run/current-system/sw/lib/dde-shell"
     "--suffix" "DDE_SHELL_PACKAGE_PATH" ":" "/run/current-system/sw/share/dde-shell"
   ];
-
-  # Override QtWayland.Compositor QML module in the application directory.
-  postInstall = let
-    qtwaylandQml = "${qt6Packages.qtwayland}/${qt6Packages.qtbase.qtQmlPrefix}/QtWayland/Compositor";
-  in ''
-    mkdir -p $out/bin/QtWayland/Compositor/qmlfiles
-    cat > $out/bin/QtWayland/Compositor/qmldir <<'QMLDIR'
-module QtWayland.Compositor
-plugin qwaylandcompositorplugin
-classname QWaylandCompositorPlugin
-typeinfo WaylandCompositor.qmltypes
-depends QtQuick
-WaylandCursorItem 6.0 qmlfiles/WaylandCursorItem.qml
-WaylandCursorItem 1.0 qmlfiles/WaylandCursorItem.qml
-WaylandOutputWindow 6.0 qmlfiles/WaylandOutputWindow.qml
-WaylandOutputWindow 1.0 qmlfiles/WaylandOutputWindow.qml
-QMLDIR
-    ln -s ${qtwaylandQml}/libqwaylandcompositorplugin.so $out/bin/QtWayland/Compositor/
-    ln -s ${qtwaylandQml}/WaylandCompositor.qmltypes $out/bin/QtWayland/Compositor/
-    for f in ${qtwaylandQml}/qmlfiles/*.qml; do
-      ln -s "$f" $out/bin/QtWayland/Compositor/qmlfiles/
-    done
-  '';
 
   # Ensure systemd user units don't go to systemd's store path
   SYSTEMD_USER_UNIT_DIR = "${placeholder "out"}/lib/systemd/user";
