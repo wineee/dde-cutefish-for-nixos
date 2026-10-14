@@ -59,6 +59,11 @@ stdenv.mkDerivation (finalAttrs: {
   postPatch = ''
     substituteInPlace CMakeLists.txt \
       --replace-fail '/etc/xdg/autostart' "$out/etc/xdg/autostart"
+
+    # The dock plugin loads its translations by absolute path; the files are
+    # merged into the system profile by environment.pathsToLink.
+    substituteInPlace dock-clipboard-plugin/clipboardplugin.cpp \
+      --replace-fail '/usr/share/dde-clipboard/translations/dde-clipboard_' '/run/current-system/sw/share/dde-clipboard/translations/dde-clipboard_'
   '';
 
   meta = {
