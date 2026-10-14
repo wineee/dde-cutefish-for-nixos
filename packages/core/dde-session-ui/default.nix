@@ -31,21 +31,55 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   postPatch = ''
-    # Fix hardcoded paths
-    find . \( -name "*.cpp" -o -name "*.h" \) -exec sed -i \
-      -e 's|/usr/share|/run/current-system/sw/share|g' \
-      -e 's|/usr/lib|/run/current-system/sw/lib|g' {} +
+    # Translations are aggregated into the system profile by pathsToLink.
+    substituteInPlace dde-bluetooth-dialog/src/main.cpp \
+      dde-hints-dialog/src/main.cpp \
+      dde-license-dialog/src/main.cpp \
+      dde-license-dialog/src/content.cpp \
+      dde-lowpower/src/main.cpp \
+      dde-suspend-dialog/src/main.cpp \
+      dde-touchscreen-dialog/src/main.cpp \
+      dde-warning-dialog/src/main.cpp \
+      dde-welcome/src/main.cpp \
+      dde-wm-chooser/src/main.cpp \
+      dmemory-warning-dialog/src/main.cpp \
+      deepin-login-reminder/main.cpp \
+      --replace-fail '/usr/share/dde-session-ui/translations' '/run/current-system/sw/share/dde-session-ui/translations'
 
-    find . \( -name "*.service" -o -name "*.desktop" \) -exec sed -i \
-      -e "s|/usr/bin|$out/bin|g" \
-      -e "s|/usr/lib|$out/lib|g" {} +
+    substituteInPlace widgets/fullscreenbackground.cpp \
+      --replace-fail '/usr/share/wallpapers/deepin/desktop.jpg' '/run/current-system/sw/share/wallpapers/deepin/desktop.jpg' \
+      --replace-fail '/usr/share/backgrounds/default_background.jpg' '/run/current-system/sw/share/backgrounds/default_background.jpg'
 
-    # Fix CMake install paths
-    find . -name "CMakeLists.txt" -exec sed -i \
-      -e "s|/etc/|$out/etc/|g" \
-      -e "s|/usr/share|$out/share|g" \
-      -e 's|''${systemd_USER_UNIT_DIR}|'"$out/lib/systemd/user"'|g' \
-      -e 's|''${SYSTEMD_USER_UNIT_DIR}|'"$out/lib/systemd/user"'|g' {} +
+    # dde-blackwidget shows the shutdown logo / plymouth theme.
+    substituteInPlace dde-blackwidget/src/window.cpp \
+      --replace-fail '/usr/share/deepin/uos_logo.svg' '/run/current-system/sw/share/deepin/uos_logo.svg' \
+      --replace-fail '/usr/share/plymouth/themes/' '/run/current-system/sw/share/plymouth/themes/'
+
+    # The notification action and the second translation dir were missed by the
+    # old /usr/share-only rewrite.
+    substituteInPlace deepin-login-reminder/main.cpp \
+      --replace-fail '/usr/local/share/dde-session-ui/translations' '/run/current-system/sw/share/dde-session-ui/translations' \
+      --replace-fail '/usr/bin/dde-hints-dialog' "$out/bin/dde-hints-dialog"
+
+    # Daemon binaries live in $out/lib/deepin-daemon, CLI ones in $out/bin.
+    substituteInPlace dde-blackwidget/misc/systemd/user/dde-blackwidget.service \
+      dde-blackwidget/misc/systemd/user/dde-blackwidget-nodbus.service \
+      --replace-fail '/usr/lib/deepin-daemon/dde-blackwidget' "$out/lib/deepin-daemon/dde-blackwidget"
+    substituteInPlace dde-warning-dialog/src/org.deepin.dde.WarningDialog1.service \
+      --replace-fail '/usr/lib/deepin-daemon/dde-warning-dialog' "$out/lib/deepin-daemon/dde-warning-dialog"
+    substituteInPlace dde-welcome/src/org.deepin.dde.Welcome1.service \
+      --replace-fail '/usr/lib/deepin-daemon/dde-welcome' "$out/lib/deepin-daemon/dde-welcome"
+    substituteInPlace deepin-login-reminder/deepin-login-reminder.desktop \
+      --replace-fail '/usr/bin/deepin-login-reminder' "$out/bin/deepin-login-reminder"
+
+    # /etc/xdg/autostart is not covered by CMAKE_INSTALL_SYSCONFDIR.
+    substituteInPlace deepin-login-reminder/CMakeLists.txt \
+      --replace-fail '/etc/xdg/autostart/' "$out/etc/xdg/autostart/"
+    # The unit dir would otherwise come from systemd.pc and point back into
+    # systemd's store path; -DSYSTEMD_USER_UNIT_DIR takes over instead.
+    substituteInPlace CMakeLists.txt \
+      --replace-fail 'pkg_get_variable(SYSTEMD_USER_UNIT_DIR systemd systemd_user_unit_dir)' \
+                     '# SYSTEMD_USER_UNIT_DIR is passed via cmakeFlags'
   '';
 
   nativeBuildInputs = [
@@ -81,7 +115,7 @@ stdenv.mkDerivation (finalAttrs: {
   cmakeFlags = [
     "-DBUILD_TESTING=OFF"
     "-DDTK_VERSION_MAJOR=6"
-    "-Dsystemd_USER_UNIT_DIR=${placeholder "out"}/lib/systemd/user"
+    "-DSYSTEMD_USER_UNIT_DIR=${placeholder "out"}/lib/systemd/user"
   ];
 
   meta = {
