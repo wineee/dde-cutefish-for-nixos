@@ -60,6 +60,25 @@ dde/                 # 参考实现（.gitignore 忽略，不提交）
 - `packages/default.nix` 只启用「已升级并构建通过」的包，其余注释。
   升级一个 → 验证一个 → 启用一个。
 - 升级/新增包后**必须**同步更新 `docs/development.md` 的维护表 + 升级日志。
+- **质量基准**：以 nixpkgs 最后一个含 DDE 的版本
+  `f81b263cd0688a2eed1e29920e655999672f1a6d` 为基准审查 diff 合理性；
+  `nixos-unstable-dde-25-flake` 质量太差，**不要参考**。
+
+### 审包四步法
+升级/审查每个包时：
+1. 在 `dde/src/<repo>` 用 `git clone --filter=blob:none` 带完整历史 clone 源码，
+   用 git log/tag 对比新旧版本差异。
+2. 检查硬编码路径（尤其 `/usr`），确认每处是否需要替换（Debian 专属工具、
+   不被 Makefile 安装的 debian/ 目录等可有意保留）。
+3. 检查编译输出：gsettings/dconfig 配置、dbus service、systemd unit、polkit、
+   udev 规则、新建用户、cmake 模块——凡影响 NixOS 模块的需特别标注。
+4. 每个包写独立移植文档 `docs/porting/<包名>.md`，并更新 development.md。
+
+### 路径修复方式（优先级从高到低）
+1. **patch/diff 文件**（`patches = [ ./xxx.patch ]`），删代码块、改逻辑用这个。
+2. **substituteInPlace 精确替换**，逐文件列出 + `--replace-fail`。
+3. **避免** `find -exec sed`、大范围 sed 正则、`grep -rl` 循环——会误伤
+   debian/rpm/archlinux 打包目录和测试文件。
 
 ### 构建验证
 - 任何包改动后跑 `nix build .#<pkg> --no-link` 确认通过，再提交。
@@ -76,6 +95,9 @@ dde/                 # 参考实现（.gitignore 忽略，不提交）
 type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目录。
 （详细示例见 `docs/AI-GUIDE.md` 第 7 节。）
 
+提交时**只 add 自己的改动**（`git status` 确认），不要混入其他 agent
+并行修改的文件；GPG 超时可用 `--no-gpg-sign`。
+
 ## 常见坑（速查）
 
 - **fetchFromGitHub hash**：抓的是 `archive/<rev>.tar.gz`，不是 `refs/tags`。
@@ -91,6 +113,12 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
 
 ## 当前状态与待办
 
+- **library 已审查完**：DTK 7 库 + 非 DTK 11 库全部 Qt6 最新版，文档在
+  `docs/porting/dtk.md`、`docs/porting/libraries.md`。
+- **go-package 已审查完**：5 个 Go 服务版本最新，硬编码路径已按基准改为
+  patch + 精确替换，文档在 `docs/porting/go-packages.md`。
+- **packages/core/ 审查中**：按四步法逐个审查（deepin-service-manager、
+  dde-session 系、dde-shell、treeland、ddm 等）。
 - 核心组件、Go 服务、artwork 已大部分升级到 Qt6 并构建通过。
 - **VM 登录链路已打通**（DDM + Treeland 0 failed units），但登录画面仍有
   output 未 enable 问题，详见 `docs/AI-GUIDE.md` 第 9 节。

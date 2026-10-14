@@ -275,7 +275,10 @@ be re-enabled one by one as it is upgraded.
   `themes/theme.go`, `deepin-login-sound.service`); rebuilt the postPatch
   against the new tree (`adjust-grub-theme/main.go` +
   `language_support/lang_support.go` for `/usr/share/dde-api`, and only
-  `misc/scripts/deepin-boot-sound.sh` for `dbus-send`).
+  `misc/scripts/deepin-boot-sound.sh` for `dbus-send`). 后续重构：
+  `/usr/lib/deepin-api` 的 `grep -nR` 循环改为明确列出 11 个被 Makefile
+  安装的 dbus service + systemd unit，逐个 `substituteInPlace --replace-fail`
+  （`debian/dde-api.postinst` 不安装，有意保留）。
 - **dde-daemon** `6.0.43` -> `6.1.107`. Dropped the three stale `.diff` patches
   (upstream already fixed wallpaper dir, caller checks, and PATH handling).
   Rebuilt postPatch as broad `find -name '*.go' -exec sed` replacements for
@@ -285,9 +288,16 @@ be re-enabled one by one as it is upgraded.
   NixOS module). Added `env.CGO_CFLAGS = "-std=gnu11"` (go-gir emits old-style
   `()` declarations that clash with GCC 14). Refreshed `vendorHash`.
   `6.1.107` -> `6.1.108`：touchpad 扩展开关 + glib loop 修复，vendorHash 不变。
+  后续重构（对齐 f81b263 基准）：新增 `0001-dont-set-PATH.patch` 删两处
+  `os.Setenv("PATH")`（原 sed 只删单行，导致 main.go 的 `if err != nil` 检查
+  外层残留 err，语义错误），所有 `find -exec sed` 改为逐文件精确替换，并补
+  基准也遗漏的 `deepinThemePath`（`/usr/share/deepin-themes/`）与
+  `/usr/share/xsessions` 两处。
 - **deepin-desktop-schemas** `6.0.7` -> `6.0.13`. Still `buildGoModule` (the
   `override_tool` builds fine in the sandbox — no network needed since it only
-  imports go-lib). Refreshed `vendorHash`.
+  imports go-lib). Refreshed `vendorHash`. 后续重构：`grep -rl "/usr/share"`
+  循环（误伤 debian/rpm/archlinux 打包目录）改为明确列出 7 个 `schemas/` +
+  `overrides/` 源文件逐个 `substituteInPlace --replace-fail`。
 - **startdde** `6.0.15` -> `6.1.6`. Refreshed `vendorHash`; added
   `env.CGO_CFLAGS = "-std=gnu11"` (same go-gir/GCC14 issue). 后续修复：
   `display/color_temp.go` 的 `timeZoneFile=/usr/share/zoneinfo/zone1970.tab`
