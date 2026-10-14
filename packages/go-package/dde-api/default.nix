@@ -43,9 +43,25 @@ buildGoModule rec {
     substituteInPlace adjust-grub-theme/main.go language_support/lang_support.go \
       --replace-fail "/usr/share/dde-api" "$out/share/dde-api"
 
-    for file in $(grep "/usr/lib/deepin-api" * -nR |awk -F: '{print $1}')
-    do
-      sed -i 's|/usr/lib/deepin-api|/run/current-system/sw/lib/deepin-api|g' $file
+    # Own binaries: the Makefile installs out/bin/* into
+    # $out/lib/deepin-api, but the dbus service files and systemd units
+    # hardcode /usr/lib/deepin-api (pathsToLink exposes
+    # /run/current-system/sw/lib/deepin-api). debian/dde-api.postinst is not
+    # installed by the Makefile, so it is intentionally left alone.
+    for f in \
+      misc/services/org.deepin.dde.Graphic1.service \
+      misc/services/org.deepin.dde.LunarCalendar1.service \
+      misc/services/org.deepin.dde.Pinyin1.service \
+      misc/system-services/org.deepin.dde.Device1.service \
+      misc/system-services/org.deepin.dde.LocaleHelper1.service \
+      misc/system-services/org.deepin.dde.SoundThemePlayer1.service \
+      misc/systemd/system/deepin-api-device.service \
+      misc/systemd/system/deepin-locale-helper.service \
+      misc/systemd/system/deepin-login-sound.service \
+      misc/systemd/system/deepin-shutdown-sound.service \
+      misc/systemd/system/deepin-sound-theme-player.service; do
+      substituteInPlace "$f" \
+        --replace-fail "/usr/lib/deepin-api" "/run/current-system/sw/lib/deepin-api"
     done
   '';
 
