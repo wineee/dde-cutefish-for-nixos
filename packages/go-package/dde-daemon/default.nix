@@ -42,56 +42,88 @@ buildGoModule rec {
 
   vendorHash = "sha256-iekvou3IWxIZ9VzF5pk+QhLAx6/IrPUvXMhLYMSYAos=";
 
+  patches = [
+    # Drop the hardcoded PATH setenv (breaks nix's wrapped PATH injection).
+    ./0001-dont-set-PATH.patch
+  ];
+
   postPatch = ''
-    # Remove hardcoded PATH overrides
-    sed -i '/os.Setenv("PATH"/d' grub2/modify_manger.go bin/dde-system-daemon/main.go
+    # /bin/bash -> runtimeShell (non-test sources only; *_test.go not built)
+    substituteInPlace accounts1/users/manager.go \
+      --replace-fail '"/bin/bash"' '"${runtimeShell}"'
+    substituteInPlace display1/manager.go \
+      --replace-fail '"/bin/bash"' '"${runtimeShell}"'
+    substituteInPlace session/eventlog/login_event.go \
+      --replace-fail '"/bin/bash"' '"${runtimeShell}"'
 
-    # Fix /bin/bash references
-    find . -name "*.go" -exec sed -i 's|"/bin/bash"|"${runtimeShell}"|g' {} +
-
-    # Fix xkb path
+    # xkb layout rules
     substituteInPlace inputdevices1/layout_list.go \
       --replace-fail "/usr/share/X11/xkb" "${xkeyboard_config}/share/X11/xkb"
 
-    # Fix timezone paths
-    find . -name "*.go" -exec sed -i \
-      's|"/usr/share/zoneinfo|"${tzdata}/share/zoneinfo|g' {} +
+    # timezone data lives in the tzdata package
+    substituteInPlace display1/color_temp.go \
+      --replace-fail '"/usr/share/zoneinfo' '"${tzdata}/share/zoneinfo'
+    substituteInPlace timedate1/manager.go \
+      --replace-fail '"/usr/share/zoneinfo/' '"${tzdata}/share/zoneinfo/'
+    substituteInPlace timedate1/zoneinfo/zone.go \
+      --replace-fail '"/usr/share/zoneinfo' '"${tzdata}/share/zoneinfo'
 
-    # Fix dde-api path
-    find . -name "*.go" -exec sed -i \
-      's|"/usr/lib/deepin-api|"/run/current-system/sw/lib/deepin-api|g' {} +
+    # dde-api / dde-control-center helper paths
+    substituteInPlace grub2/modify_manger.go \
+      --replace-fail '"/usr/lib/deepin-api' '"/run/current-system/sw/lib/deepin-api'
+    substituteInPlace accounts1/user_chpwd_union_id.go \
+      --replace-fail '"/usr/lib/dde-control-center' '"/run/current-system/sw/lib/dde-control-center'
 
-    # Fix dde-control-center path
-    find . -name "*.go" -exec sed -i \
-      's|"/usr/lib/dde-control-center|"/run/current-system/sw/lib/dde-control-center|g' {} +
-
-    # Fix deepin-daemon binary paths
-    for file in $(grep -rl "/usr/lib/deepin-daemon" .); do
-      sed -i 's|/usr/lib/deepin-daemon|/run/current-system/sw/lib/deepin-daemon|g' "$file"
-    done
+    # deepin-daemon own binaries (pathsToLink exposes /run/current-system/sw)
+    substituteInPlace accounts1/user.go \
+      --replace-fail '"/usr/lib/deepin-daemon/' '"/run/current-system/sw/lib/deepin-daemon/'
+    substituteInPlace bin/dde-system-daemon/main.go \
+      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
+    substituteInPlace bin/search/main.go \
+      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
+    substituteInPlace bluetooth1/utils_notify.go \
+      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
+    substituteInPlace display1/manager.go \
+      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
+    substituteInPlace keybinding1/shortcuts/media_shortcut.go \
+      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
+    substituteInPlace keybinding1/shortcuts/system_shortcut.go \
+      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
+    substituteInPlace keybinding1/special_keycode.go \
+      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
+    substituteInPlace service_trigger/manager.go \
+      --replace-fail '"/usr/lib/deepin-daemon/' '"/run/current-system/sw/lib/deepin-daemon/'
 
     # getconf lives in glibc.bin on NixOS, drop the /usr/bin prefix
-    find . -name "*.go" -exec sed -i 's|"/usr/bin/getconf"|"getconf"|g' {} +
+    substituteInPlace system/systeminfo1/manager.go \
+      --replace-fail '"/usr/bin/getconf"' '"getconf"'
+    substituteInPlace systeminfo1/utils.go \
+      --replace-fail '"/usr/bin/getconf"' '"getconf"'
 
-    # Fix dbus-send in the display brightness systemd task
+    # dbus-send in the display brightness systemd task
     substituteInPlace misc/systemd_task/dde-display-task-refresh-brightness.service \
       --replace-fail "/usr/bin/dbus-send" "${dbus}/bin/dbus-send"
 
-    # Fix /usr/share/dde path in zoneinfo
-    find . -name "*.go" -exec sed -i \
-      's|"/usr/share/dde/zoneinfo|"'$out'/share/dde/zoneinfo|g' {} +
+    # zoneinfo defaults ship with dde-daemon's own data
+    substituteInPlace timedate1/zoneinfo/zone.go \
+      --replace-fail '"/usr/share/dde/zoneinfo' '"'$out'/share/dde/zoneinfo'
 
-    # Own data files: the Makefile installs misc/dde-daemon/* into
-    # $out/share/dde-daemon, but the Go sources hardcode /usr/share/dde-daemon
-    # (cameraSwitch.sh, supportVirsConf.ini, dbus-udcp.json, system_actions.json).
-    find . -name "*.go" -exec sed -i \
-      's|"/usr/share/dde-daemon|"'$out'/share/dde-daemon|g' {} +
+    # Own data files (Makefile installs misc/dde-daemon/* into $out/share/dde-daemon)
+    substituteInPlace accounts1/manager.go \
+      --replace-fail '"/usr/share/dde-daemon' '"'$out'/share/dde-daemon'
+    substituteInPlace bin/dde-system-daemon/virtual.go \
+      --replace-fail '"/usr/share/dde-daemon' '"'$out'/share/dde-daemon'
+    substituteInPlace keybinding1/shortcuts/media_shortcut.go \
+      --replace-fail '"/usr/share/dde-daemon' '"'$out'/share/dde-daemon'
 
-    # Own helper scripts: the Makefile installs misc/libexec/dde-daemon/* into
-    # $out/libexec/dde-daemon, but the keybinding shortcuts hardcode
-    # /usr/libexec/dde-daemon/keybinding/*.sh.
-    find . -name "*.go" -exec sed -i \
-      's|"/usr/libexec/dde-daemon|"'$out'/libexec/dde-daemon|g' {} +
+    # Own helper scripts (keybinding shortcuts)
+    substituteInPlace keybinding1/shortcuts/system_shortcut.go \
+      --replace-fail '"/usr/libexec/dde-daemon' '"'$out'/libexec/dde-daemon'
+
+    # deepin themes + xsessions come from other packages (pathsToLink)
+    substituteInPlace accounts1/user.go \
+      --replace-fail '"/usr/share/deepin-themes/' '"/run/current-system/sw/share/deepin-themes/' \
+      --replace-fail '"/usr/share/xsessions"' '"/run/current-system/sw/share/xsessions"'
 
     patchShebangs .
   '';

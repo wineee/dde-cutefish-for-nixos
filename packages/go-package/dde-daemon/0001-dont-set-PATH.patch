@@ -1,0 +1,35 @@
+diff --git a/bin/dde-system-daemon/main.go b/bin/dde-system-daemon/main.go
+index 095a0f5..0d2bb91 100644
+--- a/bin/dde-system-daemon/main.go
++++ b/bin/dde-system-daemon/main.go
+@@ -91,15 +91,6 @@ func main() {
+ 		os.Exit(1)
+ 	}
+ 
+-	// fix no PATH when was launched by dbus
+-	if os.Getenv("PATH") == "" {
+-		logger.Warning("No PATH found, manual special")
+-		err = os.Setenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+-		if err != nil {
+-			logger.Warning(err)
+-		}
+-	}
+-
+ 	// 系统级服务，无需设置LANG和LANGUAGE，保证翻译不受到影响
+ 	_ = os.Setenv("LANG", "")
+ 	_ = os.Setenv("LANGUAGE", "")
+diff --git a/grub2/modify_manger.go b/grub2/modify_manger.go
+index ec11871..f0cc1ca 100644
+--- a/grub2/modify_manger.go
++++ b/grub2/modify_manger.go
+@@ -25,10 +25,6 @@ const (
+ 	ddeUpdateGrupUnit = "dde-update-grub.service"
+ )
+ 
+-func init() {
+-	_ = os.Setenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+-}
+-
+ type modifyManager struct {
+ 	g           *Grub2
+ 	ch          chan modifyTask

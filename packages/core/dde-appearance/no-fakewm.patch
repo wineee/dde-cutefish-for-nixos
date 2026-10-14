@@ -1,0 +1,35 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -38,4 +38,4 @@
+ 
+ add_subdirectory(src)
+ add_subdirectory(misc)
+-add_subdirectory(fakewm)
++# fakewm is X11-only; this port targets wayland (treeland).
+--- a/misc/CMakeLists.txt
++++ b/misc/CMakeLists.txt
+@@ -6,4 +6,4 @@
+ add_subdirectory(dbusservice)
+ add_subdirectory(data)
+ add_subdirectory(translations)
+-add_subdirectory(systemd)
++# dde-fakewm.service is X11-only; not installed here.
+--- a/misc/dbusservice/CMakeLists.txt
++++ b/misc/dbusservice/CMakeLists.txt
+@@ -1,8 +1,3 @@
+-configure_file(
+-  com.deepin.wm.service.in
+-  com.deepin.wm.service
+-  @ONLY
+-)
+ configure_file(
+   org.deepin.dde.Appearance1.service.in
+   org.deepin.dde.Appearance1.service
+@@ -10,7 +5,6 @@
+ )
+ 
+ set(DBUS_SERVICE_FILES
+-  ${CMAKE_CURRENT_BINARY_DIR}/com.deepin.wm.service
+   ${CMAKE_CURRENT_BINARY_DIR}/org.deepin.dde.Appearance1.service
+ )
+ 
