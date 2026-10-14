@@ -57,7 +57,7 @@ be re-enabled one by one as it is upgraded.
 | dde-control-center | 6.1.110 | Qt6 | Qt6 (Dtk6 + DDEShell + polkit-qt6) |
 | dde-network-core | 2.0.103 | Qt6 | Qt6 (Dtk6 + KF6NetworkManagerQt) |
 | dde-launchpad | 2.0.49 | Qt6 | Qt6 (Dtk6 + DDE shell + appstream-qt) |
-| dde-appearance | 1.1.86 | Qt6 | Qt6 (Dtk6 + KF6 + lomiri-qt6.gsettings-qt) |
+| dde-appearance | 1.1.86 | Qt6 | Qt6 (Dtk6 + KF6 + lomiri-qt6.gsettings-qt); X11 fakewm dropped |
 | dde-clipboard | 6.1.36 | Qt6 | Qt6 (Dtk6 + DDE shell + tray-loader) |
 | dde-grand-search | 6.1.1 | Qt6 | Qt6 (Dtk6 + dfm6-search + qdbus-service) |
 | dde-device-formatter | 1.5.11 | Qt6 | was qmake/Qt5; now cmake/Qt6 |
@@ -416,6 +416,56 @@ be re-enabled one by one as it is upgraded.
   `-pie` via `add_compile_options`/`add_link_options`, which breaks the shared
   `libdeepin-pdfium-reader` link (`undefined reference to main`); dropped `-pie`
   in postPatch (nix hardens separately).
+- **dde-file-manager** `6.6.6` 后续修复：对比 nixpkgs fork 初版后补齐 12 组
+  `--replace-fail`（`/usr/libexec/dde-file-manager`、`/usr/share/{backgrounds,
+  wallpapers,deepin}`、`/usr/lib/deepin-daemon`、`/usr/etc/deepin`、
+  `/usr/bin/sudo`、`dfm-reencrypt.desktop` 等），`postInstall` 从只处理
+  `.service` 扩展到 `.desktop/.policy/.service`（`/usr/bin/false` 占位符单独
+  指向 `sw/bin/false`），并补回 Qt5 迁移时丢失的
+  `qt6integration`/`qt6platform-plugins`。
+- **dde-session** `2.0.34` 后续修复：`sessionmanager.cpp` 的 `/usr/bin/dde-lock`
+  （用于校验调用方 cmdline，不改会一律判为非法）、`/usr/libexec/dde-session-ctl`、
+  `/usr/bin/dde-am`、`/usr/lib/deepin-daemon/langselector` 等编译进二进制的路径
+  补齐；三段 `find … -exec sed` 改为精确 `substituteInPlace`；新增
+  `dde-application-manager` 依赖（只为 dde-am 路径，无循环依赖）。
+- **dde-session-shell** `6.0.68` 后续修复：`bin/dde-lock` 包装脚本的
+  `REAL_BINARY=/usr/libexec/deepin/dde-lock` 是致命路径 —— 不改则锁屏 exec
+  一个不存在的文件；`.c`/`.json`/无后缀脚本此前完全没被 blanket sed 覆盖。
+  改为按目标分组的精确替换，补 `setxkbmap`/`xdotool`/`systemd-detect-virt`。
+- **deepin-service-manager** `1.0.24` 后续修复：`src/CMakeLists.txt` 的两个
+  编译期插件搜索目录（`SERVICE_CONFIG_DIR`/`SERVICE_LIB_DIR`）与
+  `*.service.in`/日志 JSON 里的 `/usr/bin` 改为精确替换，删掉 `postInstall`
+  的 `find $out … -exec sed`。
+- **dde-app-services** `1.0.46` 后续修复：`dde-dconfig`/`dde-dconfig-editor` 的
+  `setenv("DSG_DATA_DIRS", "/usr/share/dsg:…")` 在 `.cpp` 里（旧代码只 sed 了
+  CMakeLists，两个 CLI 工具读不到任何 dconfig 数据）；
+  `dde-dconfig-daemon.service` 的 `DSG_DATA_DIRS` 与 `ReadOnlyPaths` 改指
+  `/run/current-system/sw/share/dsg`（后者指向不存在的路径会让 systemd 挂载
+  命名空间失败）。
+- **dde-session-ui** `6.0.50` 后续修复：三段 blanket 替换改为精确替换；补齐
+  `/usr/local/share` 下的第二处翻译目录、`dde-blackwidget` 的
+  uos_logo/plymouth 路径、`/usr/lib/deepin-daemon/*` 与
+  `/usr/bin/{dde-hints-dialog,deepin-login-reminder}`；systemd unit 目录改由
+  `-DSYSTEMD_USER_UNIT_DIR` 传入（上游 `pkg_get_variable` 会指回 systemd 的
+  store 路径）。
+- **dde-appearance** `1.1.86` 后续修复：新增 `no-fakewm.patch` —— 不编译 X11 的
+  `dde-fakewm`（本移植只支持 wayland；上游 unit 自己也用 `ExecCondition` 在
+  wayland 下跳过它），同时不安装 `com.deepin.wm.service` 与
+  `dde-fakewm.service`。`glibc` 只作函数参数（取 `locale.alias` 路径）——
+  进 `buildInputs` 会把 glibc 的 include 塞进搜索路径，导致 `stdlib.h` 之类
+  解析错乱（fakewm 编译失败正是由此暴露）。
+- **dde-clipboard** `6.1.36` 后续修复：托盘插件的翻译路径
+  `/usr/share/dde-clipboard/translations` → sw profile。
+- **dde-launchpad** `2.0.49` 后续修复：日志配置
+  `dist/deepin-log-config/org.deepin.dde.launchpad.json` 里的 `/usr/bin/dde-shell`
+  → `${dde-shell}/bin/dde-shell`。
+- **NixOS 模块 `pathsToLink`**：删掉 4 个冗余 `/lib/*`（`/lib` 已在 nixpkgs 默认
+  列表里且 buildEnv 递归合并子目录 —— 实测 system-path 的 `lib/` 未链接条目为 0，
+  这些项从未生效）；补 `/share` 的 `dde-control-center`、`dde-dock`、
+  `dde-session-shell`、`dde-session-ui`、`deepin-service-manager`、
+  `xsessions`、`wayland-sessions`、`dde-clipboard`、`plugin-dde-appearance`，
+  全部从已构建产物的二进制字面量扫出（`QStringLiteral` 存 UTF-16，只扫 ASCII
+  会漏）。其中 `xsessions`/`wayland-sessions` 缺失会让 ddm 列不出任何 session。
 
 ## Removed (abandoned upstream)
 
