@@ -232,6 +232,7 @@ in
       dde-session
       dde-application-manager
       deepin-service-manager
+      deepin-pw-check
     ];
 
     # treeland.service is an upstream `linked` unit (no NixOS drop-in by

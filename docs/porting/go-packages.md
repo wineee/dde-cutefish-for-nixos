@@ -77,18 +77,14 @@
 |---|---|---|---|---|
 | dde-api | ✅ dde-api.nix | ✅ dde-api.nix | — | deepin-sound-player |
 | dde-daemon | ✅ dde-daemon.nix | ✅ dde-daemon.nix | ✅ dde-daemon.nix | deepin-daemon + deepin-admin-daemon |
-| deepin-pw-check | ❌（仅 dbus.packages） | ✅ deepin.nix | — | — |
+| deepin-pw-check | ✅ deepin.nix | ✅ deepin.nix | — | — |
 | deepin-desktop-schemas | —（gschema，无 unit） | — | — | — |
 | startdde | —（user unit） | — | — | — |
 
 ## 已知遗留
 
-1. **deepin-pw-check 的 systemd unit 未挂载**：模块只挂了
-   `services.dbus.packages`，未挂 `systemd.packages`。若 dbus 激活
-   `SystemdService=deepin-passwd-conf.service` 时 unit 不在，会失败。
-   待 VM 验证密码校验功能时确认是否需要补挂。
-2. **批量替换优化**：dde-api/dde-daemon/deepin-desktop-schemas 的
+1. **批量替换优化**：dde-api/dde-daemon/deepin-desktop-schemas 的
    `for ... grep`/`find -exec sed` 批量替换工作正常，但按质量规范应逐步
    改为 patch 文件（精确 diff，不误伤 debian/rpm 构建文件）。
-3. **Debian 专属工具**：dde-api 的 dpkg/apt/locale-gen 功能在 NixOS 下
+2. **Debian 专属工具**：dde-api 的 dpkg/apt/locale-gen 功能在 NixOS 下
    不可用（无对应工具），当前不改，属于上游 Debian 生态功能。
