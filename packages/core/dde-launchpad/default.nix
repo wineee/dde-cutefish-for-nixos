@@ -53,6 +53,13 @@ stdenv.mkDerivation (finalAttrs: {
     dde-application-manager
   ];
 
+  # The log config is read by deepin-log-viewer (outside this repo) to locate
+  # the process behind each submodule filter.
+  postPatch = ''
+    substituteInPlace dist/deepin-log-config/org.deepin.dde.launchpad.json \
+      --replace-fail '/usr/bin/dde-shell' '${dde-shell}/bin/dde-shell'
+  '';
+
   # Redirect dde-shell paths and the Qt QML module dir (defaults to qtbase's
   # read-only ${qtbase}/lib/qt-6/qml) into our output.
   postConfigure = ''

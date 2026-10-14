@@ -111,8 +111,12 @@ in
       "/share/dde-shell"
       "/share/dde-dock"
       "/share/dde-control-center"
+      "/share/dde-clipboard"
       "/share/dde-session-shell"
       "/share/dde-session-ui"
+      # dde-appearance's QTranslator is located via QStandardPaths
+      # (XDG_DATA_DIRS → /run/current-system/sw/share).
+      "/share/plugin-dde-appearance"
     ];
 
     environment.etc = {
