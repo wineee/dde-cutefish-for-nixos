@@ -105,10 +105,53 @@ buildGoModule rec {
     substituteInPlace keybinding1/shortcuts/system_shortcut.go \
       --replace-fail '"/usr/libexec/dde-daemon' '"'$out'/libexec/dde-daemon'
 
+    # The system shortcut actions (terminal / lock screen / file manager) are
+    # data, not code: system_shortcut.go loads this JSON from XDG data dirs.
+    substituteInPlace misc/dde-daemon/keybinding/system_actions.json \
+      --replace-fail "/usr/lib/deepin-daemon/default-terminal" \
+                     "/run/current-system/sw/lib/deepin-daemon/default-terminal" \
+      --replace-fail "/usr/lib/deepin-daemon/dde-lock.sh" \
+                     "/run/current-system/sw/lib/deepin-daemon/dde-lock.sh" \
+      --replace-fail "/usr/lib/deepin-daemon/default-file-manager" \
+                     "/run/current-system/sw/lib/deepin-daemon/default-file-manager"
+
     # deepin themes + xsessions come from other packages (pathsToLink)
     substituteInPlace accounts1/user.go \
       --replace-fail '"/usr/share/deepin-themes/' '"/run/current-system/sw/share/deepin-themes/' \
       --replace-fail '"/usr/share/xsessions"' '"/run/current-system/sw/share/xsessions"'
+
+    # Session D-Bus services and the systemd units exec the daemon binaries by
+    # absolute path. The Makefile installs them under $out/lib/deepin-daemon
+    # (exposed on PATH via pathsToLink), so point them there.
+    substituteInPlace misc/services/org.deepin.dde.Audio1.service \
+      misc/services/org.deepin.dde.Bluetooth1.service \
+      misc/services/org.deepin.dde.InputDevices1.service \
+      misc/services/org.deepin.dde.LangSelector1.service \
+      misc/services/org.deepin.dde.LastoreSessionHelper1.service \
+      misc/services/org.deepin.dde.Search1.service \
+      misc/services/org.deepin.dde.SessionWatcher1.service \
+      misc/services/org.deepin.dde.SystemInfo1.service \
+      misc/services/org.deepin.dde.Timedate1.service \
+      misc/services/org.deepin.dde.XEventMonitor1.service \
+      misc/services/org.deepin.dde.Zone1.service \
+      misc/systemd/services/system/dde-backlight-helper.service \
+      misc/systemd/services/system/dde-greeter-setter.service \
+      misc/systemd/services/system/dde-lock-service.service \
+      misc/systemd/services/system/dde-system-daemon.service \
+      misc/systemd/services/system/deepin-grub2.service \
+      misc/systemd/services/user/org.deepin.dde.SoundEffect1.service \
+      misc/systemd/services/user/org.dde.session.Daemon1.service \
+      --replace-fail "/usr/lib/deepin-daemon" "/run/current-system/sw/lib/deepin-daemon"
+
+    # dde-session-daemon-loader-wrapper dispatches to the real binary, which
+    # the Makefile installs into $out/libexec/deepin.
+    substituteInPlace misc/scripts/dde-session-daemon-loader-wrapper \
+      misc/scripts/langselector-loader-wrapper \
+      --replace-fail "/usr/libexec/deepin" "$out/libexec/deepin"
+
+    # lightdm session-cleanup-script (only consumed if lightdm is the DM)
+    substituteInPlace misc/lightdm.conf \
+      --replace-fail "/usr/lib/deepin-daemon" "/run/current-system/sw/lib/deepin-daemon"
 
     patchShebangs .
   '';

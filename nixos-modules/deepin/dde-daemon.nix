@@ -30,8 +30,6 @@
 
     services.dbus.packages = [ pkgs.deepin.dde-daemon ];
 
-    services.udev.packages = [ pkgs.deepin.dde-daemon ];
-
     systemd.packages = [ pkgs.deepin.dde-daemon ];
 
     environment.pathsToLink = [ "/lib/deepin-daemon" ];

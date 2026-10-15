@@ -525,6 +525,25 @@ be re-enabled one by one as it is upgraded.
     `launchpadcommon.so`，构建系统里没有任何 QML 安装规则），删掉后重建产物
     文件清单逐条相同。删完 `packages/core` 只剩 `dde-file-manager` 的
     `postInstall` 一处 find 例外。
+- **nixos-modules 清理 + dde-daemon 产物路径修复（2026-10-15）**：
+  - 删掉 `nixos-modules/deepin/dde-daemon.nix` 的 `services.udev.packages`
+    —— 上游 6.1.107 起 Makefile 无 udev 安装规则，产物里也没有 `*.rules`/`udev`
+    目录，纯死配置（这条从文档里"待清理"落实了）。
+  - 修 `dde-daemon` 6.1.108 的产物路径：Makefile 在 `install:` 里把二进制装进
+    `$out/lib/deepin-daemon`（`DAEMON_LIBDIR`）和 `$out/libexec/deepin`，但
+    随包 install 的 11 个 session dbus service、5 个 system unit、2 个 user
+    unit 的 `ExecStart`/`Exec`，两个 loader wrapper 的 `REAL_BINARY`、
+    `lightdm.conf` 的 `session-cleanup-script`、`system_actions.json` 的 3 个
+    快捷键 Action 都写死 `/usr/lib(/libexec)/deepin-daemon`。NixOS 无 `/usr`，
+    这些单元在真实系统上必然起不来（不是"未知路径"，是"必然失败"）。21 处
+    全部改精确 `substituteInPlace --replace-fail`。
+    核对方式：`grep -rl "/usr/" <新产物>` 从 57 降到 42，剩下 42 项逐条确认为
+    无害（`ReadWritePaths=-/usr/...` 的 `-` 前缀、注释行、`noscheduler` 下永不
+    读取的 `scheduler/config.json`、未编进二进制的死代码 `cmdCamera`）。
+  - 判"产物里某段路径是不是 bug"的方法：先 `nix build --print-out-paths` 拿到
+    store 路径，再 `grep -rl "/usr/" <out>` 全量列出，然后**逐条回到上游源码
+    分类**（exec 目标 / 沙箱路径 / 数据 / 死代码）。只按模式批量替换会误伤
+    `ReadWritePaths` 和注释。
 
 ## Removed (abandoned upstream)
 

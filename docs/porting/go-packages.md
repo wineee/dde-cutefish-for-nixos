@@ -8,7 +8,7 @@
 | 包 | 版本 | 产出 | 硬编码路径 | 模块影响 |
 |---|---|---|---|---|
 | dde-api | 6.0.48 | dbus service + systemd unit + polkit | `/usr/lib/deepin-api`（已精确替换）、Debian 工具（不改） | dde-api.nix 挂载 + 建 deepin-sound-player 用户 |
-| dde-daemon | 6.1.108 | dbus service + systemd unit + udev | 大量 `/usr`（已 patch + 精确替换） | dde-daemon.nix 挂载 + 建 deepin-daemon/admin 用户 |
+| dde-daemon | 6.1.108 | dbus service + systemd unit | 大量 `/usr`（已 patch + 精确替换） | dde-daemon.nix 挂载 + 建 deepin-daemon/admin 用户 |
 | deepin-pw-check | 6.0.12 | dbus service + systemd unit + polkit | unit ExecStart（**已修复**） | deepin.nix 挂 dbus + systemd.packages |
 | deepin-desktop-schemas | 6.0.13 | gschema | gschema 默认壁纸路径（已精确替换） | deepin.nix systemPackages |
 | startdde | 6.1.6 | systemd unit + lightdm.conf | tzdata（**已修复**） | deepin.nix systemPackages |
@@ -54,9 +54,31 @@
   bc8dae9 升级时以 "drop stale diffs" 删除属正确决定，勿重新加回。
 - **产出**：大量 dbus service（system + session）、systemd unit（含 user
   unit）。6.1.107 起上游不再装 udev 规则（Makefile 无 udev 安装规则），
-  模块 `dde-daemon.nix` 里的 `services.udev.packages` 已是死配置，
-  待清理。模块另挂 `systemd.packages` + `dbus.packages`，并建
+  模块 `dde-daemon.nix` 里的 `services.udev.packages` 是死配置，已于
+  2026-10-15 删除。模块另挂 `systemd.packages` + `dbus.packages`，并建
   `deepin-daemon` / `deepin-admin-daemon` 用户（对应上游 sysusers）。
+- **已修复 bug（2026-10-15，按产物逐个核对）**：Makefile 把二进制装进
+  `$out/lib/deepin-daemon`、`$out/libexec/deepin`，但一批随包安装的
+  service/unit/脚本仍写死 `/usr/lib/deepin-daemon`、`/usr/libexec/deepin`，
+  在 NixOS 上必然失败。已在 postPatch 用 `--replace-fail` 精确修正 21 处：
+  - 11 个 session dbus service（Audio1/Bluetooth1/InputDevices1/
+    LangSelector1/LastoreSessionHelper1/Search1/SessionWatcher1/SystemInfo1/
+    Timedate1/XEventMonitor1/Zone1）的 `Exec=` → `/run/current-system/sw/lib/deepin-daemon`；
+  - 5 个 system unit + 2 个 user unit（含 `org.dde.session.Daemon1.service`
+    的 `ExecStart`）的 `ExecStart=` → 同上；
+  - `dde-session-daemon-loader-wrapper` / `langselector-loader-wrapper` 的
+    `REAL_BINARY` → `$out/libexec/deepin`（这个最隐蔽：wrapper 自身能起来，
+    但 exec 的目标不存在）；
+  - `system_actions.json` 里 terminal/lockScreen/fileManager 三个快捷键
+    Action（Go 侧 `system_shortcut.go` 只读这个 JSON，不读源码常量）；
+  - `lightdm.conf` 的 `session-cleanup-script`。
+- **确认无碍的残留**：产物里仍含 `/usr` 的位置都不是 bug —— 沙箱用的
+  `ReadWritePaths=-/usr/...`（`-` 前缀容忍缺失）、被注释掉的行、
+  `scheduler/config.json`（上游 `BUILD_TAGS ?= noscheduler` 默认禁用该模块，
+  永不读取）、`cameraSwitch.sh` 的 deepin-camera desktop（该脚本对应
+  `cmdCamera` 常量已是死代码，未编进二进制）、`deepin-camera` 包本就 removed。
+  `touchscreen.json` 的 `longpressBlacklist` 是 DConfig 运行时可改的偏好，
+  非硬编码路径，未动。
 
 ### deepin-pw-check
 - 密码强度校验（PAM + cracklib）。
@@ -93,7 +115,7 @@
 | 包 | systemd.packages | dbus.packages | udev.packages | 新建用户/组 |
 |---|---|---|---|---|
 | dde-api | ✅ dde-api.nix | ✅ dde-api.nix | — | deepin-sound-player |
-| dde-daemon | ✅ dde-daemon.nix | ✅ dde-daemon.nix | ✅ dde-daemon.nix | deepin-daemon + deepin-admin-daemon |
+| dde-daemon | ✅ dde-daemon.nix | ✅ dde-daemon.nix | —（上游 6.1.107 起不再产出 udev 规则） | deepin-daemon + deepin-admin-daemon |
 | deepin-pw-check | ✅ deepin.nix | ✅ deepin.nix | — | — |
 | deepin-desktop-schemas | —（gschema，无 unit） | — | — | — |
 | startdde | —（user unit） | — | — | — |
