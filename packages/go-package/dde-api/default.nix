@@ -48,8 +48,7 @@ buildGoModule rec {
     # hardcode /usr/lib/deepin-api (pathsToLink exposes
     # /run/current-system/sw/lib/deepin-api). debian/dde-api.postinst is not
     # installed by the Makefile, so it is intentionally left alone.
-    for f in \
-      misc/services/org.deepin.dde.Graphic1.service \
+    substituteInPlace misc/services/org.deepin.dde.Graphic1.service \
       misc/services/org.deepin.dde.LunarCalendar1.service \
       misc/services/org.deepin.dde.Pinyin1.service \
       misc/system-services/org.deepin.dde.Device1.service \
@@ -59,10 +58,8 @@ buildGoModule rec {
       misc/systemd/system/deepin-locale-helper.service \
       misc/systemd/system/deepin-login-sound.service \
       misc/systemd/system/deepin-shutdown-sound.service \
-      misc/systemd/system/deepin-sound-theme-player.service; do
-      substituteInPlace "$f" \
-        --replace-fail "/usr/lib/deepin-api" "/run/current-system/sw/lib/deepin-api"
-    done
+      misc/systemd/system/deepin-sound-theme-player.service \
+      --replace-fail "/usr/lib/deepin-api" "/run/current-system/sw/lib/deepin-api"
   '';
 
   nativeBuildInputs = [

@@ -24,17 +24,14 @@ buildGoModule rec {
     # Only the schemas/ and overrides/ trees end up installed (build copies
     # them into result/ and installs result/*.xml + result/*.override); the
     # debian/rpm/archlinux packaging dirs are not installed and left alone.
-    for f in \
-      overrides/common/com.deepin.wrap.gnome.desktop.override \
+    substituteInPlace overrides/common/com.deepin.wrap.gnome.desktop.override \
       overrides/mips/appearance.override \
       overrides/sw/appearance.override \
       schemas/com.deepin.dde.appearance.gschema.xml \
       schemas/wrap/com.deepin.wrap.gnome.desktop.app-folders.gschema.xml \
       schemas/wrap/com.deepin.wrap.gnome.desktop.background.gschema.xml \
-      schemas/wrap/com.deepin.wrap.gnome.desktop.screensaver.gschema.xml; do
-      substituteInPlace "$f" \
-        --replace-fail "/usr/share" "/run/current-system/sw/share"
-    done
+      schemas/wrap/com.deepin.wrap.gnome.desktop.screensaver.gschema.xml \
+      --replace-fail "/usr/share" "/run/current-system/sw/share"
   '';
 
   buildPhase = ''

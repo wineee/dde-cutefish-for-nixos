@@ -33,13 +33,11 @@ buildGoModule rec {
 
   postPatch = ''
     substituteInPlace display/manager.go \
-      --replace-fail "/bin/bash" "${runtimeShell}"
+      --replace-fail "/bin/bash" "${runtimeShell}" \
+      --replace-fail "/usr/lib/deepin-daemon" "/run/current-system/sw/lib/deepin-daemon"
 
     substituteInPlace misc/systemd_task/dde-display-task-refresh-brightness.service \
        --replace-fail "/usr/bin/dbus-send" "${dbus}/bin/dbus-send"
-
-    substituteInPlace display/manager.go \
-      --replace-fail "/usr/lib/deepin-daemon" "/run/current-system/sw/lib/deepin-daemon"
 
     # NixOS keeps zoneinfo in the tzdata package, not /usr/share/zoneinfo.
     substituteInPlace display/color_temp.go \

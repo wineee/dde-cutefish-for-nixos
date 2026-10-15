@@ -50,10 +50,8 @@ buildGoModule rec {
   postPatch = ''
     # /bin/bash -> runtimeShell (non-test sources only; *_test.go not built)
     substituteInPlace accounts1/users/manager.go \
-      --replace-fail '"/bin/bash"' '"${runtimeShell}"'
-    substituteInPlace display1/manager.go \
-      --replace-fail '"/bin/bash"' '"${runtimeShell}"'
-    substituteInPlace session/eventlog/login_event.go \
+      display1/manager.go \
+      session/eventlog/login_event.go \
       --replace-fail '"/bin/bash"' '"${runtimeShell}"'
 
     # xkb layout rules
@@ -62,10 +60,8 @@ buildGoModule rec {
 
     # timezone data lives in the tzdata package
     substituteInPlace display1/color_temp.go \
-      --replace-fail '"/usr/share/zoneinfo' '"${tzdata}/share/zoneinfo'
-    substituteInPlace timedate1/manager.go \
-      --replace-fail '"/usr/share/zoneinfo/' '"${tzdata}/share/zoneinfo/'
-    substituteInPlace timedate1/zoneinfo/zone.go \
+      timedate1/manager.go \
+      timedate1/zoneinfo/zone.go \
       --replace-fail '"/usr/share/zoneinfo' '"${tzdata}/share/zoneinfo'
 
     # dde-api / dde-control-center helper paths
@@ -76,28 +72,19 @@ buildGoModule rec {
 
     # deepin-daemon own binaries (pathsToLink exposes /run/current-system/sw)
     substituteInPlace accounts1/user.go \
-      --replace-fail '"/usr/lib/deepin-daemon/' '"/run/current-system/sw/lib/deepin-daemon/'
-    substituteInPlace bin/dde-system-daemon/main.go \
+      bin/dde-system-daemon/main.go \
+      bin/search/main.go \
+      bluetooth1/utils_notify.go \
+      display1/manager.go \
+      keybinding1/shortcuts/media_shortcut.go \
+      keybinding1/shortcuts/system_shortcut.go \
+      keybinding1/special_keycode.go \
+      service_trigger/manager.go \
       --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
-    substituteInPlace bin/search/main.go \
-      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
-    substituteInPlace bluetooth1/utils_notify.go \
-      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
-    substituteInPlace display1/manager.go \
-      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
-    substituteInPlace keybinding1/shortcuts/media_shortcut.go \
-      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
-    substituteInPlace keybinding1/shortcuts/system_shortcut.go \
-      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
-    substituteInPlace keybinding1/special_keycode.go \
-      --replace-fail '"/usr/lib/deepin-daemon' '"/run/current-system/sw/lib/deepin-daemon'
-    substituteInPlace service_trigger/manager.go \
-      --replace-fail '"/usr/lib/deepin-daemon/' '"/run/current-system/sw/lib/deepin-daemon/'
 
     # getconf lives in glibc.bin on NixOS, drop the /usr/bin prefix
     substituteInPlace system/systeminfo1/manager.go \
-      --replace-fail '"/usr/bin/getconf"' '"getconf"'
-    substituteInPlace systeminfo1/utils.go \
+      systeminfo1/utils.go \
       --replace-fail '"/usr/bin/getconf"' '"getconf"'
 
     # dbus-send in the display brightness systemd task
@@ -110,10 +97,8 @@ buildGoModule rec {
 
     # Own data files (Makefile installs misc/dde-daemon/* into $out/share/dde-daemon)
     substituteInPlace accounts1/manager.go \
-      --replace-fail '"/usr/share/dde-daemon' '"'$out'/share/dde-daemon'
-    substituteInPlace bin/dde-system-daemon/virtual.go \
-      --replace-fail '"/usr/share/dde-daemon' '"'$out'/share/dde-daemon'
-    substituteInPlace keybinding1/shortcuts/media_shortcut.go \
+      bin/dde-system-daemon/virtual.go \
+      keybinding1/shortcuts/media_shortcut.go \
       --replace-fail '"/usr/share/dde-daemon' '"'$out'/share/dde-daemon'
 
     # Own helper scripts (keybinding shortcuts)
