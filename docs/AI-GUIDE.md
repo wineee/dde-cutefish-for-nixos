@@ -153,7 +153,20 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
 
 1. `packages/apps/` 仍有一批应用待升级（由另一 AI 并行负责，提交时注意不碰其文件）。
 2. 未来窗管：treeland（当前已删 deepin-kwin/dwayland/deepin-wayland-protocols）。
-3. `deepin-anything`：模块已注释，待内核模块 + 用户态工具准备好后再启用。
+3. `deepin-anything`：模块已注释（`flake.nix` imports 里），包定义也在
+   `packages/default.nix` 里注释掉。包本身还是 **Qt5**（`libsForQt5`），且
+   `postPatch` 把 kernelmod 整个 `add_subdirectory` 替换掉了 —— 要启用需要
+   先迁 Qt6 + 打包内核模块（`config.boot.kernelPackages.deepin-anything-module`
+   目前不存在）。是个完整的小项目，不是补几行的事。
+4. **重建 VM 复测 treeland output**（见第 9 节第 1 条）：`vm/result` 还停在
+   treeland 0.10.0，而 0.11.0 已包含当年判定缺失的 `enable()` 调用。
+   `cd vm && nixos-rebuild build-vm` 后跑一遍，若输出正常即可从"已知限制"里删掉。
+5. **跨包 Exec 路径已全量扫过一遍**（2026-10-15）：所有包当前解析产物的
+   `Exec=`/`ExecStart=` 均不再指向 `/usr`（`=/usr/bin/false` 的 systemd 委派
+   占位符除外）。要复查用：解析各包产物路径后
+   `grep -rn "^ExecStart=.*/usr/\|^Exec=.*/usr/" <out>/{lib,share}/systemd <out>/share/dbus-1`。
+   注意**别扫 /nix/store 里所有同名目录** —— 旧构建会残留旧路径，必须只用当前
+   flake 解析到的那一个（`nix build .#<pkg> --print-out-paths --no-link`）。
 
 ## 9. VM 调试状态与已知限制（treeland 登录链路）
 
@@ -179,14 +192,19 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
 
 ### 已知限制（待解决）
 
-1. **output 未 enable**：treeland 日志 `Temporarily disabled output during
-   initial scan "Virtual-1"` 后无 `Enabled output`。DConfig
-   `org.desktopspec.ConfigManager` 已注册、`org.deepin.dde.treeland.output`
-   资源可读（width/height/x 均为默认 0，即无已保存模式），但
-   `restoreInitialOutputConfiguration` 未把 output 重新 enable，QEMU 里
-   仍显示 `Display output is not active`。定位到源码
-   `src/seat/helper.cpp` 的 `restoreExtensionModeFromConfig()` 应无条件
-   `outputObject->enable()`，尚未确认为何未触发。
+1. **output 未 enable（可能已随 treeland 0.11.0 修掉，待复测）**：treeland 日志
+   `Temporarily disabled output during initial scan "Virtual-1"` 后无
+   `Enabled output`。DConfig `org.desktopspec.ConfigManager` 已注册、
+   `org.deepin.dde.treeland.output` 资源可读（width/height/x 均为默认 0，
+   即无已保存模式），但 `restoreInitialOutputConfiguration` 未把 output 重新
+   enable，QEMU 里仍显示 `Display output is not active`。
+   **2026-10-15 复核**：该结论是在 treeland **0.10.0** 上得出的（`vm/result`
+   仍链到 `treeland-0.10.0`，VM 于 10-12 构建）。而 0.11.0 的
+   `src/seat/helper.cpp` 里 `restoreExtensionModeFromConfig()` **已经无条件调用
+   `outputObject->enable()`**（注释写明 "enabling an output must not depend on
+   that initialization succeeding"），默认路径
+   `restoreInitialOutputConfiguration()` 也会走到它 —— 正是当年判定缺失的那步。
+   所以要做的不是改源码，而是**重建 VM 并复测**；若仍不亮，再按新版本排查。
 2. **登录界面缺默认头像**：`QtIcon: Cannot open:
    file:///var/lib/AccountsService/icons/default`。宿主 deepin 有该 symlink
    （指向 `icons/animal/raccoon.png`），VM 缺失。
@@ -195,5 +213,8 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
    `StandardOutput=null`、`AmbientCapabilities=CAP_IPC_OWNER` 等。若后续
    NVIDIA/真实硬件异常，优先对齐这些项。
 4. **DSG_DATA_DIRS 噪声日志**：`dde-dconfig-daemon` 报大量
-   `Can't load meta file from local prefix: ""`（tray-loader/dock/network
-   等 app 的 meta 未安装），不影响 treeland 自身 DConfig，可后续清理。
+   `Can't load meta file from local prefix: ""`。**2026-10-15 复核：已不是配置
+   问题** —— `dde-app-services` 的 unit 里 `DSG_DATA_DIRS` 已正确指向
+   `/run/current-system/sw/share/dsg`，模块也链接了 `/share/dsg`；噪声是因为
+   tray-loader/dock/network 等**消费方 app 的 meta 尚未安装**（对应包未进仓库）。
+   属于"等包补齐"而非"可清理"，不必再动。
