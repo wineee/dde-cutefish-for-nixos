@@ -175,7 +175,13 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
    目前不存在）。是个完整的小项目，不是补几行的事。
 4. **重建 VM 复测 treeland output**（见第 9 节第 1 条）：`vm/result` 还停在
    treeland 0.10.0，而 0.11.0 已包含当年判定缺失的 `enable()` 调用。
-   `cd vm && nixos-rebuild build-vm` 后跑一遍，若输出正常即可从"已知限制"里删掉。
+   2026-10-15 已 `nix build .#nixosConfigurations.vm.config.system.build.vm`
+   并更新 `vm/result`（现指向含 0.11.0 的新镜像），但**尚未在图形环境里跑起来
+   复测**：沙箱无 KVM，纯 TCG 引导全桌面极慢且无 GL render node
+   （`-display gtk,gl=on` / `egl-headless` 都不可用）。待有 KVM/GL 的环境再跑一遍，
+   若输出正常即可从"已知限制"里删掉。`vm/run-headless.sh` 是为此写的
+   无 GL 启动脚本（改用 `-vga virtio -display none`，保留 hostfwd 2222→22），
+   在有 KVM 的机器上可直接用。
 5. **跨包 Exec 路径已全量扫过一遍**（2026-10-15）：所有包当前解析产物的
    `Exec=`/`ExecStart=` 均不再指向 `/usr`（`=/usr/bin/false` 的 systemd 委派
    占位符除外）。要复查用：解析各包产物路径后
@@ -214,12 +220,20 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
    即无已保存模式），但 `restoreInitialOutputConfiguration` 未把 output 重新
    enable，QEMU 里仍显示 `Display output is not active`。
    **2026-10-15 复核**：该结论是在 treeland **0.10.0** 上得出的（`vm/result`
-   仍链到 `treeland-0.10.0`，VM 于 10-12 构建）。而 0.11.0 的
-   `src/seat/helper.cpp` 里 `restoreExtensionModeFromConfig()` **已经无条件调用
-   `outputObject->enable()`**（注释写明 "enabling an output must not depend on
-   that initialization succeeding"），默认路径
-   `restoreInitialOutputConfiguration()` 也会走到它 —— 正是当年判定缺失的那步。
-   所以要做的不是改源码，而是**重建 VM 并复测**；若仍不亮，再按新版本排查。
+   仍链到 `treeland-0.10.0`，VM 于 10-12 构建）。已对 `dde/src-dl/treeland-0.11.0`
+   源码逐处核对，确认 0.11.0 已修好此问题：
+   - `src/seat/helper.cpp:3971` `restoreExtensionModeFromConfig()` 里对每个
+     output **无条件调用 `outputObject->enable()`**，注释写明
+     "enabling an output must not depend on that initialization succeeding"；
+   - 启动路径 `helper.cpp:743` 调 `restoreInitialOutputConfiguration()`
+     （定义在 `:4068`），其默认分支（`singleOutputId` 为空且非 copy-mode）
+     在 `:4101` 落到 `restoreExtensionModeFromConfig()` —— 正是当年判定缺失
+     的那一步。
+   所以**无需改源码**；已验证 `vm/flake.lock` 重新生成后，VM toplevel 解析到
+   `treeland-0.11.0.drv`（不再是 0.10.0），并已 `nix build` 出新 VM 镜像、更新
+   `vm/result`（旧镜像停留在 10-12）。**剩余动作只有"在带 KVM/GL 的环境里跑起来
+   看 output 是否亮"** —— 本沙箱无 KVM（纯 TCG 太慢）、无 GL render node
+   （`gtk,gl=on` 与 `egl-headless` 都起不来），故未完成这一步复测。
 2. **登录界面缺默认头像**：`QtIcon: Cannot open:
    file:///var/lib/AccountsService/icons/default`。宿主 deepin 有该 symlink
    （指向 `icons/animal/raccoon.png`），VM 缺失。
