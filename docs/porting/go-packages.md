@@ -45,10 +45,18 @@
   `substituteInPlace --replace-fail`。并补了基准也遗漏的两处：
   `accounts1/user.go` 的 `deepinThemePath`（`/usr/share/deepin-themes/`）和
   `getSessionList` 的 `/usr/share/xsessions` → `/run/current-system/sw/share`。
+- **基线另两个 patch（0002/0003）确认失效、不再恢复**（2026-10-15 对照
+  6.1.108 源码逐项核实）：0002 的 custom-wallpapers 目录上游已改为
+  `/var/cache/wallpapers/`、`head` 调用已移除；0003 的 7 处目标代码
+  （controlCenterPath 精确比较、chpwd 的 exe 白名单、dde-authority 目录、
+  grub2.go 控制中心路径、powerbtn.sh、80-deepin-fprintd.rules、
+  displaycfg.go 的 greeter 比较）在 6.1.107+ 均已删除或改为 uid 校验。
+  bc8dae9 升级时以 "drop stale diffs" 删除属正确决定，勿重新加回。
 - **产出**：大量 dbus service（system + session）、systemd unit（含 user
-  unit）、udev 规则。模块 `dde-daemon.nix` 挂 `systemd.packages` +
-  `dbus.packages` + `udev.packages`，并建 `deepin-daemon` /
-  `deepin-admin-daemon` 用户（对应上游 sysusers）。
+  unit）。6.1.107 起上游不再装 udev 规则（Makefile 无 udev 安装规则），
+  模块 `dde-daemon.nix` 里的 `services.udev.packages` 已是死配置，
+  待清理。模块另挂 `systemd.packages` + `dbus.packages`，并建
+  `deepin-daemon` / `deepin-admin-daemon` 用户（对应上游 sysusers）。
 
 ### deepin-pw-check
 - 密码强度校验（PAM + cracklib）。
