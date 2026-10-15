@@ -23,20 +23,23 @@ dde-application-manager      # 启动应用
 改指 `${dde-shell}/bin/dde-shell`。该文件由 **deepin-log-viewer**（不在本仓库）
 读取，用来把日志过滤项映射到进程。
 
-### postConfigure：安装路径重定向
+### 不需要重定向，也不需要 on-disk qmldir
 
-applet 的安装目标默认落在 `dde-shell` 的 store 路径里，会污染依赖包；改用
-`cmake_install.cmake` 重写：
+applet 通过 `ds_install_package` 装到 dde-shell 导出的
+`DDE_SHELL_{PLUGIN,PACKAGE,TRANSLATION}_INSTALL_DIR`。dde-shell 2.0.57 的
+`DDEShellConfig.cmake.in` 原本用 `@CMAKE_INSTALL_PREFIX@/...` 拼成绝对路径，
+指向 dde-shell 自己的 store；该模板已在 dde-shell 侧只去掉前缀、保留上游算出的
+相对值，于是 `ds_install_package` 自然落到**本包自己的 prefix**，本包不需要重定向
+（原先那两条 sed 已删，见 development.md 升级日志）。
 
-- `${dde-shell}/share/dde-shell` → `$out/share/dde-shell`
-- `${dde-shell}/lib/dde-shell` → `$out/lib/dde-shell`
-- `${qtbase}/lib/qt-6/qml` → `$out/lib/qt6/qml`（Qt QML 默认目录是 qtbase 的只读路径）
-
-### 不需要 on-disk qmldir
-
+Qt 的 QML 目录那条 `find` 也一并删了。2026-10-15 实测它在 2.0.49 上是 no-op：
 三个 QML 模块都以 resource 形式嵌在 `launchpadcommon.so` 的 `/qt/qml/…` 下，
-Qt 默认的 `qrc:/qt/qml` 导入路径能找到。`$out/lib/qt6/qml` 本身不在任何导入路径上
-（本包没有 `bin/`、没有 wrapper，`pathsToLink` 也不含它），手写 qmldir 是无效的。
+Qt 默认的 `qrc:/qt/qml` 导入路径就能找到，构建系统里根本没有往
+`${qtbase}/lib/qt-6/qml` 安装的规则，所以 `find` 匹配不到任何东西。删掉后重建，
+产物文件清单与删之前逐条相同（76 个文件）。
+
+而且原重定向的目标 `$out/lib/qt6/qml` 本身也不在任何导入路径上（本包没有
+`bin/`、没有 wrapper，`pathsToLink` 也不含它），即使真有规则命中，装过去也是无效的。
 
 ## 编译输出（对 NixOS 模块的影响）
 

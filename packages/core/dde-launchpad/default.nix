@@ -60,18 +60,11 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail '/usr/bin/dde-shell' '${dde-shell}/bin/dde-shell'
   '';
 
-  # Redirect dde-shell paths and the Qt QML module dir (defaults to qtbase's
-  # read-only ${qtbase}/lib/qt-6/qml) into our output.
-  postConfigure = ''
-    find . -name "cmake_install.cmake" -exec sed -i \
-      -e "s|${dde-shell}/share/dde-shell|$out/share/dde-shell|g" \
-      -e "s|${dde-shell}/lib/dde-shell|$out/lib/dde-shell|g" \
-      -e "s|${qt6Packages.qtbase}/${qt6Packages.qtbase.qtQmlPrefix}|$out/lib/qt6/qml|g" {} +
-  '';
-
-  # No on-disk qmldir needed: all three modules are resource-embedded in
-  # launchpadcommon.so under /qt/qml/..., found via Qt's default "qrc:/qt/qml"
-  # import path. $out/lib/qt6/qml is on no import path anyway (no bin/, no wrapper).
+  # No on-disk qmldir and no QML install dir: all three QML modules are
+  # resource-embedded in launchpadcommon.so under /qt/qml/..., found via Qt's
+  # default "qrc:/qt/qml" import path. The postConfigure that used to redirect
+  # qtbase's lib/qt-6/qml into $out/lib/qt6/qml therefore never matched anything
+  # (and that destination is on no import path anyway), so it is gone.
 
   cmakeFlags = [
     "-DBUILD_TEST=OFF"

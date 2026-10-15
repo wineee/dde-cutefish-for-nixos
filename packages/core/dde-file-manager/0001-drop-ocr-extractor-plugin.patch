@@ -1,0 +1,9 @@
+--- a/src/apps/dde-file-manager-extractor/plugins/CMakeLists.txt
++++ b/src/apps/dde-file-manager-extractor/plugins/CMakeLists.txt
+@@ -1,6 +1,5 @@
+ cmake_minimum_required(VERSION 3.10)
+ 
+ add_subdirectory(text-extractor)
+-add_subdirectory(ocr-extractor)
+ 
+ message(STATUS "DFM: extractor plugins configured")

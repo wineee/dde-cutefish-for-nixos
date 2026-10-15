@@ -22,12 +22,6 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-RY5hKW8ze+cTNE1+u71j9b3qCAjWj+VjKGXCXuURoAc=";
   };
 
-  postPatch = ''
-    # Fix hardcoded /etc paths
-    find . -name "CMakeLists.txt" -exec \
-      sed -i "s|/etc/|$out/etc/|g" {} +
-  '';
-
   nativeBuildInputs = [
     cmake
     pkg-config
@@ -43,6 +37,9 @@ stdenv.mkDerivation (finalAttrs: {
     libxkbcommon
   ];
 
+  # Sources contain no hardcoded /etc paths (1.2.62): the only sysconfdir
+  # consumer is misc/CMakeLists.txt's dpkg hook, handled by this flag and then
+  # dropped in postInstall. Don't re-add a find/sed for it.
   cmakeFlags = [
     "-DCMAKE_INSTALL_SYSCONFDIR=${placeholder "out"}/etc"
     "-DCMAKE_INSTALL_LIBEXECDIR=lib"

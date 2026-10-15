@@ -26,9 +26,12 @@ stdenv.mkDerivation (finalAttrs: {
   postPatch = ''
     # The service/systemd/autostart files invoke dbus-send via a hardcoded
     # /bin/bash shebang/Exec line; point them at the Nix-provided shell.
-    for file in $(grep -rl "/bin/bash" src misc); do
-      substituteInPlace $file --replace-fail "/bin/bash" "${runtimeShell}"
-    done
+    substituteInPlace misc/script/clear_schedules.sh \
+      misc/script/test_dbus_apis.sh \
+      src/calendar-client/assets/translate_generation.sh \
+      src/calendar-service/assets/data/com.dde.calendarserver.calendar.service \
+      src/calendar-service/assets/dde-calendar-service.desktop \
+      --replace-fail "/bin/bash" "${runtimeShell}"
 
     # calendar-service gates its D-Bus API on a client whitelist that is only
     # compiled in when CALENDAR_SERVICE_AUTO_EXIT is set (i.e. every non-Debug

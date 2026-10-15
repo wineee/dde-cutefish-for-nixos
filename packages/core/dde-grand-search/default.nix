@@ -90,14 +90,10 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail 'm_loader->setPluginPath({ QString(defaultPath) });' \
                      'm_loader->setPluginPath({ QString(defaultPath), QStringLiteral("/run/current-system/sw/lib/dde-grand-search-daemon/plugins/searcher") });'
 
-    # ds_install_package()/ds_handle_package_translation() would install into
-    # dde-shell's read-only store path; re-point them at our own output right
-    # after DDEShellConfig.cmake has been loaded (it set()s these variables).
-    substituteInPlace src/grand-search-shell-plugin/CMakeLists.txt \
-      --replace-fail 'find_package(DDEShell REQUIRED)' 'find_package(DDEShell REQUIRED)
-set(DDE_SHELL_PACKAGE_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/share/dde-shell")
-set(DDE_SHELL_PLUGIN_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/lib/dde-shell")
-set(DDE_SHELL_TRANSLATION_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/share/dde-shell")'
+    # No DDE_SHELL_*_INSTALL_DIR override: dde-shell exports those relative (see
+    # dde-shell/default.nix), so ds_install_package() and
+    # ds_handle_package_translation() in grand-search-shell-plugin already
+    # install into this package's own prefix.
 
     # Skip reading /etc/os-version (NixOS doesn't have it); force DDE 25 so
     # the Qt6-only shell plugin gets built.

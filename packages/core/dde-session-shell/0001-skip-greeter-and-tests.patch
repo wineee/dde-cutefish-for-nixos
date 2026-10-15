@@ -1,0 +1,46 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -63,7 +63,7 @@
+ else ()
+     find_package(Qt6 COMPONENTS LinguistTools REQUIRED)
+     find_package(Dtk${DTK_VERSION_MAJOR} COMPONENTS REQUIRED Tools)
+-    pkg_check_modules(Greeter REQUIRED liblightdm-qt6-3)
++    # pkg_check_modules(Greeter REQUIRED liblightdm-qt6-3) -- patched out for NixOS
+ endif ()
+ 
+ pkg_check_modules(XCB_EWMH REQUIRED xcb-ewmh x11 xi xcursor xfixes xrandr xext xtst)
+@@ -296,7 +296,6 @@
+     ${XCB_EWMH_LIBRARIES}
+     Dtk${DTK_VERSION_MAJOR}::Widget
+     Dtk${DTK_VERSION_MAJOR}::Core
+-    ${Greeter_LIBRARIES}
+     PkgConfig::SSL
+ )
+ if (DISABLE_DSS_SNIPE)
+@@ -307,6 +306,7 @@
+     )
+ endif()
+ 
++if(FALSE) # NixOS: skip greeter (no liblightdm-qt6-3)
+ set(GREETER_SRCS
+     ${AUTH_DBUS_SCRS}
+     ${SWITCHOS_DBUS_SCRS}
+@@ -398,7 +398,8 @@
+ if (DISABLE_DSS_SNIPE)
+     add_subdirectory(lighter-greeter)
+ endif ()
+-add_subdirectory(tests)
++endif() # NixOS: end skip greeter
++# add_subdirectory(tests) -- disabled for NixOS
+ add_subdirectory(plugins)
+ add_subdirectory(src/pam-inhibit-autologin)
+ 
+@@ -429,7 +430,7 @@
+ 
+ # dde-lock binary installed to libexec/deepin for security-loader
+ install(TARGETS dde-lock DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/deepin)
+-install(TARGETS lightdm-deepin-greeter greeter-display-setting DESTINATION ${CMAKE_INSTALL_BINDIR})
++# install(TARGETS lightdm-deepin-greeter greeter-display-setting) -- patched out for NixOS
+ # Install loader wrapper script as /usr/bin/dde-lock
+ install(PROGRAMS files/dde-lock-loader-wrapper DESTINATION ${CMAKE_INSTALL_BINDIR}
+     RENAME dde-lock

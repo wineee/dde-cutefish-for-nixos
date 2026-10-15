@@ -38,43 +38,18 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-hqv8dd3GiXpR1PaPCry7ob1OL/7EkI+gJ5JCeOm0dnQ=";
   };
 
+  # Drops the greeter (needs liblightdm-qt6-3, which nixpkgs has no Qt6 bindings
+  # for) and the tests that link against it: comments out the Greeter pkg-config
+  # check and the greeter install rule, and wraps the whole greeter block in
+  # if(FALSE)...endif(). A patch keeps the block boundaries reviewable; the sed
+  # + substituteInPlace pair it replaces could not be checked by reading.
+  patches = [ ./0001-skip-greeter-and-tests.patch ];
+
   postPatch = ''
     # Fix hardcoded qdbusxml2cpp path
     substituteInPlace CMakeLists.txt \
       --replace-fail '/usr/lib/qt''${QT_VERSION_MAJOR}/bin/qdbusxml2cpp' \
                      '${qt6Packages.qtbase}/bin/qdbusxml2cpp'
-
-    # Remove liblightdm-qt6-3 requirement — dde-lock doesn't actually use LightDM APIs.
-    # The greeter does, but we skip building it since nixpkgs has no Qt6 lightdm bindings.
-    substituteInPlace CMakeLists.txt \
-      --replace-fail 'pkg_check_modules(Greeter REQUIRED liblightdm-qt6-3)' \
-                     '# pkg_check_modules(Greeter REQUIRED liblightdm-qt6-3) -- patched out for NixOS'
-
-    # Remove spurious Greeter_LIBRARIES from dde-lock link line
-    substituteInPlace CMakeLists.txt \
-      --replace-fail '    ''${Greeter_LIBRARIES}
-    PkgConfig::SSL
-)
-if (DISABLE_DSS_SNIPE)' \
-                     '    PkgConfig::SSL
-)
-if (DISABLE_DSS_SNIPE)'
-
-    # Don't build lightdm-deepin-greeter (needs liblightdm-qt6-3 which doesn't exist in nixpkgs).
-    # Wrap the entire greeter block in if(FALSE)...endif() to skip it cleanly.
-    # The block covers: GREETER_SRCS, add_executable, target_include/compile/link for greeter.
-    sed -i '/^set(GREETER_SRCS/i if(FALSE) # NixOS: skip greeter (no liblightdm-qt6-3)' CMakeLists.txt
-    sed -i '/^add_subdirectory(tests)/i endif() # NixOS: end skip greeter' CMakeLists.txt
-
-    # Also skip tests (they reference the greeter target)
-    substituteInPlace CMakeLists.txt \
-      --replace-fail 'add_subdirectory(tests)' \
-                     '# add_subdirectory(tests) -- disabled for NixOS'
-
-    # Remove greeter from install targets (both binaries need liblightdm-qt6-3)
-    substituteInPlace CMakeLists.txt \
-      --replace-fail 'install(TARGETS lightdm-deepin-greeter greeter-display-setting DESTINATION ''${CMAKE_INSTALL_BINDIR})' \
-                     '# install(TARGETS lightdm-deepin-greeter greeter-display-setting) -- patched out for NixOS'
 
     # Data dirs (translations, backgrounds, icons, plugin modules) live in other
     # packages and are merged into the system profile.

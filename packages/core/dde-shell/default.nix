@@ -83,6 +83,11 @@ stdenv.mkDerivation (finalAttrs: {
     "-DBUILD_TESTING=OFF"
     "-DCMAKE_INSTALL_LIBDIR=lib"
     "-DCMAKE_INSTALL_SYSCONFDIR=${placeholder "out"}/etc"
+    # shell/CMakeLists.txt falls back to pkg_get_variable(systemduserunitdir)
+    # when this is unset, i.e. systemd's own read-only store path. It guards
+    # with `if (NOT DEFINED ...)`, so a -D flag is the intended override (an
+    # environment variable is not: CMake does not import env vars as vars).
+    "-DSYSTEMD_USER_UNIT_DIR=${placeholder "out"}/lib/systemd/user"
   ];
 
   postPatch = ''
@@ -91,23 +96,20 @@ stdenv.mkDerivation (finalAttrs: {
     # deprecated-declarations warnings non-fatal.
     substituteInPlace CMakeLists.txt \
       --replace-fail "add_compile_options(\$<\$<COMPILE_LANGUAGE:C,CXX>:-Werror>)" ""
-    # Fix hardcoded /etc paths
-    find . -name "CMakeLists.txt" -exec \
-      sed -i "s|/etc/|$out/etc/|g" {} +
-    # Redirect systemd user unit install to our output
-    find . -name "CMakeLists.txt" -exec \
-      sed -i "s|\''${SYSTEMD_USER_UNIT_DIR}|$out/lib/systemd/user|g" {} +
 
-    # DDEShellConfig.cmake.in exports the install dirs as
-    # "@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_*_INSTALL_DIR@", i.e. baked-in absolute
-    # paths pointing at *this* store path. Downstream packages (dde-launchpad,
-    # dde-tray-loader, ...) then install into dde-shell's read-only output.
-    # Re-export them relative so they resolve against each consumer's own prefix.
-    sed -i \
-      -e 's|@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_PACKAGE_INSTALL_DIR@|''${CMAKE_INSTALL_DATADIR}/dde-shell|' \
-      -e 's|@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_PLUGIN_INSTALL_DIR@|''${CMAKE_INSTALL_LIBDIR}/dde-shell|' \
-      -e 's|@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_TRANSLATION_INSTALL_DIR@|''${CMAKE_INSTALL_DATADIR}/dde-shell|' \
-      misc/DDEShellConfig.cmake.in
+    # DDEShellConfig.cmake.in bakes this store path into the exported
+    # @DDE_SHELL_*_INSTALL_DIR@ values that a consumer's ds_install_package()
+    # installs into, i.e. into dde-shell's read-only output. Drop only the
+    # "@CMAKE_INSTALL_PREFIX@/" prefix: upstream's value is already relative
+    # ("share/dde-shell", "lib/dde-shell") and a relative install(DESTINATION)
+    # resolves against each consumer's own CMAKE_INSTALL_PREFIX.
+    substituteInPlace misc/DDEShellConfig.cmake.in \
+      --replace-fail '@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_PACKAGE_INSTALL_DIR@' \
+                     '@DDE_SHELL_PACKAGE_INSTALL_DIR@' \
+      --replace-fail '@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_PLUGIN_INSTALL_DIR@' \
+                     '@DDE_SHELL_PLUGIN_INSTALL_DIR@' \
+      --replace-fail '@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_TRANSLATION_INSTALL_DIR@' \
+                     '@DDE_SHELL_TRANSLATION_INSTALL_DIR@'
   '';
 
   # No QML2_IMPORT_PATH needed: wrapQtAppsHook already collects every build
@@ -120,9 +122,6 @@ stdenv.mkDerivation (finalAttrs: {
     "--suffix" "DDE_SHELL_PLUGIN_PATH" ":" "/run/current-system/sw/lib/dde-shell"
     "--suffix" "DDE_SHELL_PACKAGE_PATH" ":" "/run/current-system/sw/share/dde-shell"
   ];
-
-  # Ensure systemd user units don't go to systemd's store path
-  SYSTEMD_USER_UNIT_DIR = "${placeholder "out"}/lib/systemd/user";
 
   meta = {
     description = "DDE shell framework (panel, taskbar, applets)";

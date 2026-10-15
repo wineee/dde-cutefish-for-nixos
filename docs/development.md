@@ -348,8 +348,11 @@ be re-enabled one by one as it is upgraded.
   deepin-pw-check + libxrandr). No longer uses gsettings-qt.
 - **dde-launchpad** `1.0.8` -> `2.0.48`. Qt6 (Dtk6 + DDE shell +
   appstream-qt + qtwayland). Requires dde-shell >= 2.0.52 (xdgactivation.h).
-  postConfigure redirects dde-shell install dirs; postInstall writes on-disk
-  qmldir for its 3 QML modules (embedded in launchpadcommon.so).
+  postConfigure redirects dde-shell install dirs and qtbase's QML dir; postInstall
+  writes on-disk qmldir for its 3 QML modules (embedded in launchpadcommon.so).
+  Both postConfigure and postInstall are gone as of 2.0.49 — dde-shell now
+  exports relative dirs, the QML is resource-embedded, and the qtbase redirect
+  never matched. See "packages/core 补丁规范化（续）".
 - **dde-appearance** `1.1.29` -> `1.1.86`. Qt6 (Dtk6 + KF6 + lomiri-qt6.gsettings-qt +
   deepin-service-manager). Replaces `/usr/share/zoneinfo` with `${tzdata}`;
 - **dde-clipboard** `6.0.11` -> `6.1.35`. Qt6 (Dtk6 + DDE shell + tray-loader +
@@ -357,7 +360,8 @@ be re-enabled one by one as it is upgraded.
 - **dde-grand-search** `5.5.2` -> `6.1.1`. Qt6 (Dtk6 + dfm6-search +
   deepin-qdbus-service + DDE shell). Qt6 auto-detect; forces
   `BUILD_OS_VERSION=25` so the Qt6-only shell plugin builds. postConfigure
-  redirects the dde-shell package install dir to `$out` (ds_install_package).
+  redirects the dde-shell package install dir to `$out` (ds_install_package)
+  — removed later, see "packages/core 补丁规范化（续）".
 - **dde-session** `1.2.12` -> `2.0.33`. Qt6 (Dtk6 Tools + libcap-ng/libsecret/
   xcb/xcursor/xfixes/x11). Drops the `kwin_x11 --replace` line (and its
   kglobalshortcutsrc pre-step) from `dde-session@x11.service` — treeland is the
@@ -476,6 +480,51 @@ be re-enabled one by one as it is upgraded.
   `xsessions`、`wayland-sessions`、`dde-clipboard`、`plugin-dde-appearance`，
   全部从已构建产物的二进制字面量扫出（`QStringLiteral` 存 UTF-16，只扫 ASCII
   会漏）。其中 `xsessions`/`wayland-sessions` 缺失会让 ddm 列不出任何 session。
+
+- **packages/core 补丁规范化（续）**：把剩下的大范围 `find -exec sed` 与
+  `grep -rl` 循环改成逐文件 `substituteInPlace --replace-fail`（原则见下方
+  「`--replace-fail` 与 `--replace` 的选择」）。逐包：
+  - `dde-application-manager` `1.2.62`：删掉整段 `find -name CMakeLists.txt
+    -exec sed -i 's|/etc/|$out/etc/|g'` —— 该版本任何 CMakeLists.txt 里都没有
+    `/etc`（`git grep <tag> -- '*CMakeLists.txt'` 为空），是死代码；sysconfdir
+    只有 `misc/CMakeLists.txt` 的 dpkg hook 用变量拼，由 cmakeFlags 覆盖。
+  - `dde-shell` `2.0.57`：同样删掉 `/etc` 那段死代码；`SYSTEMD_USER_UNIT_DIR`
+    改走 cmakeFlags 的 `-D`，并删掉同名 env 变量（实测无效，见 Gotchas）。
+    `DDEShellConfig.cmake.in` 的三处 `sed -i` 改 `substituteInPlace`，并且**只**
+    去掉 `@CMAKE_INSTALL_PREFIX@/` 前缀（保留上游自己算出的相对值），从根上
+    修掉「下游把插件装进 dde-shell 只读 store 路径」的问题 —— 见 Gotchas。
+  - `dde-calendar` `6.6.3`：`for f in $(grep -rl "/bin/bash" src misc)` 改为
+    显式列出 5 个命中文件。
+  - `treeland` `0.11.0`：按模式重新分组（pkill / llvm-symbolizer 各 1 个文件、
+    systemctl 4 个、`ExecCondition=/bin/sh` 6 个），`--replace` 升级为
+    `--replace-fail`。
+  - `dde-file-manager` `6.6.6`：`/etc` 只有两处 install 规则（service-group
+    drop-in 目录、diskencrypt udev 规则），改精确替换；ocr 插件的删行改成
+    `0001-drop-ocr-extractor-plugin.patch`（sed 会静默失效，patch 会响亮失败）；
+    `postInstall` 里对安装产物的 find 保留并写明理由。另外删掉紧跟
+    `find_package(DDEShell REQUIRED)` 注入 `DDE_SHELL_*_INSTALL_DIR` 的那段
+    `sed /a\`：`dependencies.cmake` 那份本来就是死代码（`set()` 写在
+    `function()` 里，而该函数从不调用 `ds_*` 宏），`panel-desktop` 那份在
+    dde-shell 导出相对目录后已多余；`libappimage` 的两条 `sed -i` 改精确
+    `substituteInPlace --replace-fail`。
+  - `dde-grand-search` `6.1.1`：同样删掉注入 `DDE_SHELL_*_INSTALL_DIR` 的
+    多行替换（`grand-search-shell-plugin` 调 `ds_install_package` +
+    `ds_handle_package_translation`，过去确实需要，现在由 dde-shell 的导出
+    直接满足）。
+  - `dde-session-shell` `6.0.68`：greeter/tests 的 6 步改动（注释 pkg-config
+    检查、删 dde-lock 链接行里的 `Greeter_LIBRARIES`、`if(FALSE)` 包住整段
+    greeter、注释 `add_subdirectory(tests)` 与 greeter 的 install 规则）改成
+    `0001-skip-greeter-and-tests.patch`，postPatch 由 98 行降到 66 行。改为
+    patch 的理由：这 6 步里有两步是**插入**行（`sed /i`），读 `substituteInPlace`
+    的调用看不出块边界，diff 能。已用「旧 postPatch 双镜像 vs 新 patch」验证
+    输出逐字节相同（508 行）。
+  - `dde-launchpad` `2.0.49`：`postConfigure` 整段删除。其中重定向 dde-shell
+    store 路径的两条 sed 已失效（dde-shell 现在导出相对目录，
+    `ds_install_package` 自然落到本包自己的 prefix）；剩下那条重定向 qtbase
+    QML 目录的 `find` 实测在 2.0.49 上不命中（QML 已 resource-embed 进
+    `launchpadcommon.so`，构建系统里没有任何 QML 安装规则），删掉后重建产物
+    文件清单逐条相同。删完 `packages/core` 只剩 `dde-file-manager` 的
+    `postInstall` 一处 find 例外。
 
 ## Removed (abandoned upstream)
 
@@ -618,6 +667,23 @@ nixpkgs' cmake wrapper injects absolute `CMAKE_INSTALL_LIBDIR`/
 appended twice (`/nix/store/<pkg>/nix/store/<pkg>/...`). Fix the template to
 consume the already-absolute variable (see `dde-control-center`).
 
+### 新增 patch 文件必须先 `git add` 才能构建
+
+flake 的 git fetcher 只把**已跟踪/已暂存**的文件拷进 store；未跟踪的新文件
+（例如刚写的 `0001-xxx.patch`）不在其中，构建会报
+`getting status of '/nix/store/<hash>-source/.../0001-xxx.patch': No such file
+or directory`。加进索引后即可：
+`git add packages/<分类>/<pkg>/0001-xxx.patch`。
+
+### 环境变量不会变成 CMake 变量
+
+给派生式写 `FOO = "...";` 只是导出环境变量，CMake 不会把它当成 `${FOO}` 变量；
+nixpkgs 的 cmake hook 也只注入 `-DCMAKE_*`，没有通用的 env→`-D` 转发。上游
+`if (NOT DEFINED FOO)` 守卫因此照旧走 `pkg_get_variable()` 回退（指回 systemd /
+qtbase 的只读 store 路径）。正确写法是放进 `cmakeFlags`：
+`"-DFOO=${placeholder "out"}/..."`。`dde-shell` 2.0.57 之前同时留着一个无效的
+env 变量 `SYSTEMD_USER_UNIT_DIR` 和一段 sed，两者都已被 `-D` 取代。
+
 ### Plugin install dirs pointing at another package's store path
 
 `dde-network-core`'s `dcc-network` plugin installs into
@@ -626,12 +692,55 @@ exports an absolute `DDE_CONTROL_CENTER_PLUGIN_INSTALL_DIR`. Override it after
 `find_package(DdeControlCenter ...)` to install into `$out` (the plugin is
 picked up from the control-center plugin search dir at runtime).
 
-### `substituteInPlace` cannot inject `\n` into CMakeLists safely
+### 缩进字符串 `''…''` 里不能写空串 `''`
 
-`substituteInPlace --replace-fail ...` with a `\n` in the replacement produces
-unbalanced quoting / parse errors in cmake files. For multi-line edits (or
-adding a line after a `find_package`), edit the unpacked source in
-`dde/src/` with git and generate a patch file instead.
+`postPatch = ''…''` 是 Nix 缩进字符串。串内的 `''` 只有后跟 `'`、`$` 或 `\`
+时才是转义，其余情况下被当成字符串结束符，于是下面这行会在第二个 `''` 处
+提前收尾，报 `syntax error, expecting ';'`：
+
+```nix
+--replace-fail 'libappimage ' ''      # ← 语法错误
+```
+
+要传空串就写 `""`。更好的做法是把被删的 token 换成一条自解释的注释
+（`# no libappimage in nixpkgs`），生成的构建树里也能看出为什么少了它 ——
+注意这条注释要独占一行，`#` 会吞掉本行剩余内容，跟在别的参数后面写会把后面
+的参数一起注释掉。
+
+同一原因，替换文本里需要字面 `${…}` 时，缩进字符串写 `''${CMAKE_INSTALL_BINDIR}`，
+双引号串写 `"\''${..."`，否则 Nix 先把它当自己的插值插掉。
+
+**多行替换本身没问题**：`dde-grand-search` 就是用多行 `--replace-fail` 往
+`find_package(DDEShell REQUIRED)` 后面追加三行 `set(...)`，并且构建通过。
+只有**删代码块 / 改逻辑**这种「读 diff 才看得清」的改动才改用 patch 文件
+（如 `dde-session-shell` 的 greeter 跳过、`dde-file-manager` 的删 ocr 插件）。
+
+### 下游会写进 dde-shell 只读 store 路径
+
+`dde-shell` 的 `DDEShellConfig.cmake.in` 把安装目录导出成
+`@CMAKE_INSTALL_PREFIX@/@DDE_SHELL_*_INSTALL_DIR@`，即写死本包的 store 绝对
+路径。下游调 `ds_install_package()` / `ds_handle_package_translation()`
+（定义在 `DDEShellPackageMacros.cmake`）时会 `install(... DESTINATION
+${DDE_SHELL_*_INSTALL_DIR})`，于是试图往 dde-shell 的只读输出里写。
+
+修法：在 dde-shell 里**只删掉 `@CMAKE_INSTALL_PREFIX@/` 前缀**，别去替换成
+`${CMAKE_INSTALL_DATADIR}/dde-shell`。上游自己的值就是相对路径
+（`set(DDE_SHELL_PACKAGE_INSTALL_DIR ${CMAKE_INSTALL_DATADIR}/dde-shell CACHE ...)`，
+在本包 configure 时已定成 `share/dde-shell`），相对 `DESTINATION` 会自动接上
+每个下游自己的 `CMAKE_INSTALL_PREFIX`。而 `${CMAKE_INSTALL_DATADIR}` 只在
+「恰好 `include(GNUInstallDirs)` 过」的下游作用域里存在，`@PACKAGE_INIT@`
+并不帮你引入它 —— 照抄那个写法会退化成 `set(... /dde-shell)`。
+
+已构建产物可以直接核对：`lib/cmake/DDEShell/DDEShellConfig.cmake` 里的
+`set(DDE_SHELL_PACKAGE_INSTALL_DIR …)` 应该是相对的 `share/dde-shell`。
+历史上（`64fb51f`，参考三方 flake 那批）用在下游塞覆盖来绕过，
+`dde-file-manager` / `dde-grand-search` / `dde-launchpad` 三处覆盖都已删除。
+
+判定下游到底用没用这些变量：在上游 tag 上跑
+`git grep -n 'ds_install_package\|ds_build_package\|ds_handle_package_translation'`。
+注意 `set()` 写在 `function()` 里只作用于函数作用域（`dde-file-manager` 的
+`ddplugin-core/dependencies.cmake` 就是这种死代码），而 `find_package()` 会把
+变量留在调用目录的作用域里，函数能读到。
 
 ### gsettings override 列表只放真正带 schema 的包
 
@@ -673,7 +782,7 @@ Qt6 升级早期参考过一个三方 flake（`nixos-unstable-dde-25-flake`，kt
 | `dde-grand-search` 的 `fix-dbus-path-for-daemon.diff` | 上游 6.1.1 的 `.service` 已改成直接 `Exec=dde-grand-search-daemon`，patch 失效，**文件已删** |
 | `deepin-reader` 的 `0001-build-tests-with-cpp-14.patch` | `-DBUILD_TESTS=OFF`，tests 不构建，**文件已删** |
 | `dde-file-manager` 的 v23 patch + `-DNIX_DEEPIN_VERSION` | 上游 6.5.x 已移除 `DEEPIN_OS_VERSION` 判定，**删除正确** |
-| `dde-shell` 的 `DDEShellConfig.cmake.in` | **仍需修**：2.0.57 还是把本包的 store 绝对路径写给下游，已用 sed 改成 `${CMAKE_INSTALL_DATADIR}` 形式 |
+| `dde-shell` 的 `DDEShellConfig.cmake.in` | **仍需修，已修到根上**：2.0.57 把本包的 store 绝对路径写给下游，现在只删掉 `@CMAKE_INSTALL_PREFIX@/` 前缀，保留上游自己算出的相对值。下游 `dde-launchpad` / `dde-file-manager` / `dde-grand-search` 那三处"再 sed 一次重定向"都因此多余并已删除，见 Gotchas |
 | `dde-calendar` 的 dbus 白名单 | **仍需修**：`CALENDAR_SERVICE_AUTO_EXIT` 在非 Debug 构建下必然定义，而 6.6.3 改成精确相等匹配，NixOS 的 `.dde-calendar-wrapped` 会被拒 |
 
 另外 `dde-daemon` 有两处基线和三方**都没有处理**的真 bug，已补：
@@ -687,6 +796,24 @@ Go 代码却写死 `/usr`）。
 ### `--replace-fail` 与 `--replace` 的选择
 
 默认一律用 `--replace-fail`：上游改了字符串就应该让构建失败，而不是静默跳过。
-例外只有一种：对**一批文件**做**多个**模式替换、每个文件只命中其中一部分时
-（如 `treeland` 的 systemd unit 处理）。这种情况已在代码里写了注释说明，
-不要"顺手"改成 `--replace-fail`，否则构建会断。
+
+多个模式、而每个文件只命中其中一部分时（如 `treeland` 的 systemd unit、
+`dde-daemon` 的 9 处 `/usr/lib/deepin-daemon`），**按模式给文件分组**，每组一次
+`substituteInPlace`，就仍然能用 `--replace-fail` —— 分组后每个列出的文件必然
+含该模式。不要退回 `grep -rl` 循环配 `--replace`。
+
+唯一的例外是 `postInstall` 里对**安装产物**的批量替换（`dde-file-manager`
+对 `$out` 下 `*.desktop`/`*.policy`/`*.service`）：文件集由几十条 install 规则
+和构建目录共同产生，写死源文件清单会漏掉上游后续新增的文件，静默留下坏路径 —
+这里"覆盖面"比"精确性"更重要。这类地方必须在代码里写明理由。
+
+（`dde-launchpad` 的 `postConfigure` 曾对 CMake 生成的 `cmake_install.cmake`
+做同类替换，用来把 QML 模块从 qtbase 的只读 `lib/qt-6/qml` 重定向出来。
+2026-10-15 实测它在 2.0.49 上根本不命中 —— 删掉后重新构建，产物文件清单逐条
+相同（76 个文件）。原因是 QML 模块已经 resource-embed 进 `launchpadcommon.so`，
+构建系统里没有任何 QML 安装规则。所以 `packages/core` 现在只剩上面这一处 find。）
+
+**判定"这段 sed 是不是死代码"**：拿包里的 `version` 对应 tag，在
+`dde/src/<repo>` 里 `git grep -n <pattern> <tag> -- <pathspec>`。命中为空就是
+死代码，直接删（`dde-application-manager` 的 `/etc`、`dde-shell` 的 `/etc` 都是
+这么发现的）。

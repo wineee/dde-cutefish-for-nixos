@@ -65,18 +65,28 @@ stdenv.mkDerivation (finalAttrs: {
     substituteInPlace src/wallpaper/wallpapermanager.cpp \
       --replace-fail '"/usr/share/wallpapers/deepin/deepin-default.jpg"' '"${deepin-wallpapers}/share/wallpapers/deepin/deepin-default.jpg"'
 
-    # systemd unit ExecStartPre/ExecStart/ExecStop /usr/bin and /bin helpers.
-    # NOTE: --replace (not --replace-fail) is deliberate here. Each unit file
-    # contains only a subset of the four patterns, so requiring all four to
-    # match would abort the build. Do not "tidy" this into --replace-fail.
-    for f in $(grep -rl -e '/usr/bin/pkill' -e '/usr/bin/systemctl' -e '/usr/bin/llvm-symbolizer' -e 'ExecCondition=/bin/sh' misc/systemd)
-    do
-      substituteInPlace "$f" \
-        --replace '/usr/bin/pkill' '/run/current-system/sw/bin/pkill' \
-        --replace '/usr/bin/systemctl' '/run/current-system/sw/bin/systemctl' \
-        --replace '/usr/bin/llvm-symbolizer' '/run/current-system/sw/bin/llvm-symbolizer' \
-        --replace 'ExecCondition=/bin/sh' 'ExecCondition=/run/current-system/sw/bin/sh'
-    done
+    # systemd units call FHS helpers in ExecStartPre/ExecStop and
+    # ExecCondition. Files are listed per pattern so each one is guaranteed to
+    # contain it, which is what allows --replace-fail (the previous grep -rl
+    # loop had to use --replace because a unit file holds only a subset of the
+    # patterns).
+    substituteInPlace misc/systemd/treeland.service.in \
+      --replace-fail '/usr/bin/pkill' '/run/current-system/sw/bin/pkill' \
+      --replace-fail '/usr/bin/llvm-symbolizer' '/run/current-system/sw/bin/llvm-symbolizer'
+
+    substituteInPlace misc/systemd/dde-session-pre.target.wants/treeland-sd.service.in \
+      misc/systemd/dde-session-pre.target.wants/treeland-xwayland.service.in \
+      misc/systemd/dde-session-pre.target.wants/treeland.service.in \
+      misc/systemd/dde-session-shutdown.target.wants/treeland-session-shutdown.service \
+      --replace-fail '/usr/bin/systemctl' '/run/current-system/sw/bin/systemctl'
+
+    substituteInPlace misc/systemd/dde-session-pre.target.wants/treeland-sd.service.in \
+      misc/systemd/dde-session-pre.target.wants/treeland-xwayland.service.in \
+      misc/systemd/dde-session-pre.target.wants/treeland.service.in \
+      misc/systemd/dde-session-shutdown.target.wants/treeland-session-shutdown.service \
+      misc/systemd/treeland-screensaver.service.in \
+      misc/systemd/treeland-session-helper.service.in \
+      --replace-fail 'ExecCondition=/bin/sh' 'ExecCondition=/run/current-system/sw/bin/sh'
   '';
 
   # The single-mode session desktop entries are configured with

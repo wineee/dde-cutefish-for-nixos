@@ -56,6 +56,11 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-lQ1MDuyCJYC7liKboKv8VwlAv3nqHqCw+H5ErUwXy9Q=";
   };
 
+  # The extractor's ocr plugin needs dtk6ocr, whose upstream repo
+  # (linuxdeepin/dtk6ocr) no longer exists. A patch fails loudly if upstream
+  # reorganises the plugins, unlike the sed it replaces.
+  patches = [ ./0001-drop-ocr-extractor-plugin.patch ];
+
   nativeBuildInputs = [
     cmake
     pkg-config
@@ -131,17 +136,13 @@ stdenv.mkDerivation (finalAttrs: {
     substituteInPlace src/plugins/filemanager/dfmplugin-disk-encrypt-entry/utils/encryptutils.cpp \
       --replace-fail "ch.unicode(), 2, 16" "static_cast<uint>(ch.unicode()), 2, 16"
 
-    # Disable the ocr-extractor plugin — it requires dtk6ocr which is not
-    # packaged (upstream repo linuxdeepin/dtk6ocr no longer exists).
-    sed -i '/add_subdirectory(ocr-extractor)/d' \
-      src/apps/dde-file-manager-extractor/plugins/CMakeLists.txt
-
-    # Fix /etc/ hardcoded paths in services
-    find . -name "CMakeLists.txt" -exec sed -i \
-      -e "s|DESTINATION /etc/systemd/system|DESTINATION $out/lib/systemd/system|g" \
-      -e "s|DESTINATION /etc/udev/rules.d|DESTINATION $out/lib/udev/rules.d|g" \
-      -e "s|DESTINATION /etc/|DESTINATION $out/etc/|g" \
-      {} +
+    # Only two install() rules target /etc in 6.6.6 (the service-group drop-in
+    # dir and the diskencrypt udev rules); every other install already uses a
+    # relative DESTINATION, so these two cover the whole tree.
+    substituteInPlace src/services/CMakeLists.txt \
+      --replace-fail 'DESTINATION /etc/systemd/system' "DESTINATION $out/lib/systemd/system"
+    substituteInPlace src/services/diskencrypt/CMakeLists.txt \
+      --replace-fail 'DESTINATION /etc/udev/rules.d' "DESTINATION $out/lib/udev/rules.d"
 
     # Hardcoded FHS paths that upstream still ships in 6.6.6 (all confirmed
     # compiled into the built .so files). Data under /usr/share is merged into the
@@ -187,21 +188,22 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail "/usr/share/applications/dfm-reencrypt.desktop" \
         "$out/share/applications/dfm-reencrypt.desktop"
 
-    # Override dde-shell install dirs after find_package(DDEShell) — the imported
-    # cmake config sets non-cache variables pointing to dde-shell's store path
-    sed -i '/find_package(DDEShell REQUIRED)/a\
-set(DDE_SHELL_PACKAGE_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/share/dde-shell")\
-set(DDE_SHELL_PLUGIN_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/lib/dde-shell")\
-set(DDE_SHELL_TRANSLATION_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/share/dde-shell")' \
-      src/external/dde-shell-plugins/panel-desktop/CMakeLists.txt \
-      src/plugins/desktop/ddplugin-core/dependencies.cmake
+    # No DDE_SHELL_*_INSTALL_DIR override: dde-shell exports those relative (see
+    # dde-shell/default.nix), so the ds_install_package() call in
+    # panel-desktop/CMakeLists.txt already lands in this package's own prefix.
 
-    # Remove libappimage dependency (not in nixpkgs, used for AppImage thumbnail support)
-    sed -i \
-      -e 's|find_package(libappimage REQUIRED)|# libappimage removed|' \
-      -e 's|libappimage||g' \
-      cmake/DFMLibraryConfig.cmake
-    sed -i 's|libappimage ||' assets/dev/dfm6-base/dfm6-base.pc.in
+    # libappimage is not packaged in nixpkgs (AppImage thumbnails stay off).
+    # Comment out both the find_package call and its link-list entry, and drop
+    # the token from the .pc file. Exact targets, so an upstream rename fails the
+    # build instead of silently leaving a dangling reference.
+    substituteInPlace cmake/DFMLibraryConfig.cmake \
+      --replace-fail '            libappimage' \
+                     '            # no libappimage in nixpkgs' \
+      --replace-fail 'find_package(libappimage REQUIRED)' \
+                     '# no libappimage in nixpkgs; AppImage thumbnails stay off'
+    substituteInPlace assets/dev/dfm6-base/dfm6-base.pc.in \
+      --replace-fail 'Requires.private: libappimage libheif poppler-cpp' \
+                     'Requires.private: libheif poppler-cpp'
 
     # Stub out appimage thumbnail support in source (libappimage not available)
     substituteInPlace src/dfm-base/utils/thumbnail/thumbnailcreators.cpp \
@@ -226,6 +228,12 @@ QImage ThumbnailCreators::pptxThumbnailCreator'
   # Installed .desktop/.policy/.service files keep upstream's /usr paths.
   # /usr/bin/false belongs to entries with SystemdService= (dbus delegates
   # activation to systemd and ignores Exec), so point it at a real file.
+  #
+  # Deliberately a find over $out and not a list of source files: the installed
+  # set comes from dozens of install() rules across the tree, some fed by the
+  # build directory, so a hand-maintained list would silently miss whatever
+  # upstream adds next — silently broken paths matter more here than the
+  # precision --replace-fail would give.
   postInstall = ''
     find $out -type f \( -name "*.desktop" -o -name "*.policy" -o -name "*.service" \) -exec sed -i \
       -e "s|/usr/bin/false|/run/current-system/sw/bin/false|g" \

@@ -22,12 +22,22 @@ setxkbmap、xdotool（键盘 grab 用）
 
 ## greeter 被整体禁用
 
-上游 greeter 依赖 `liblightdm-qt6-3`，nixpkgs 无此 Qt6 绑定。在 CMakeLists 里：
+上游 greeter 依赖 `liblightdm-qt6-3`，nixpkgs 无此 Qt6 绑定。这些改动集中在
+`0001-skip-greeter-and-tests.patch` 里（原先散在 postPatch：3 处
+`substituteInPlace` + 2 条 `sed /i` 插入行，读代码看不出块边界）：
 
-- 注释 `pkg_check_modules(Greeter REQUIRED …)`
+- 注释 `pkg_check_modules(Greeter REQUIRED liblightdm-qt6-3)`
 - 从 `dde-lock` 链接行移除 `${Greeter_LIBRARIES}`
-- 用 `sed` 在 `set(GREETER_SRCS` 前插 `if(FALSE)`、在 `add_subdirectory(tests)` 前插
-  `endif()`，跳过整段 greeter 块（GREETER_SRCS / add_executable / target_* / install）
+- 在 `set(GREETER_SRCS` 前插 `if(FALSE)`、在 `add_subdirectory(tests)` 前插
+  `endif()`，跳过整段 greeter 块（GREETER_SRCS / add_executable / target_* /
+  install）。块内 `target_link_libraries(lightdm-deepin-greeter …)` 里的
+  `${Greeter_LIBRARIES}` 保持不变 —— 那块已经不参与构建
+- 注释掉 `add_subdirectory(tests)`（tests 引用 greeter target）
+- 注释掉 `install(TARGETS lightdm-deepin-greeter greeter-display-setting …)`
+
+等价性用「旧 postPatch vs 新 patch」双镜像核对过：两边对 `CMakeLists.txt`
+的输出逐字节相同（508 行），核对脚本见 `.workbuddy/tmp/eq-test.sh` 的思路
+（上游 6.0.68 原始文件 507 行）。
 
 ### 安装分支（`DDE_SESSION_SHELL_SNIPE=ON` → `DISABLE_DSS_SNIPE=FALSE`）
 
