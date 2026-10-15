@@ -46,7 +46,7 @@ packages/tools/      # 构建/工具
 nixos-modules/deepin/# NixOS 模块
 docs/                # development.md（维护状态）+ AI-GUIDE.md（详细指南）
 vm/                  # 虚拟机测试 flake
-dde/                 # 参考实现（.gitignore 忽略，不提交）
+dde/                 # 上游源码 clone 与按需下载（.gitignore 忽略，不提交）
 ```
 
 ## 关键约定
@@ -54,20 +54,19 @@ dde/                 # 参考实现（.gitignore 忽略，不提交）
 ### 命名
 - DTK 库「去 6 后缀」：`dtkcore`/`dtkgui`/`dtkwidget`/`dtkdeclarative`/
   `dtksystemsettings`/`dtklog` 都是 **Qt6** 版本，Qt5 已删除。
-- 参考实现 `dde/nixos-unstable-dde-25-flake/` 用 `dtk6*` 命名，**不要照抄**。
 
 ### 维护策略
 - `packages/default.nix` 只启用「已升级并构建通过」的包，其余注释。
   升级一个 → 验证一个 → 启用一个。
 - 升级/新增包后**必须**同步更新 `docs/development.md` 的维护表 + 升级日志。
 - **质量基准**：以 nixpkgs 最后一个含 DDE 的版本
-  `f81b263cd0688a2eed1e29920e655999672f1a6d` 为基准审查 diff 合理性；
-  `nixos-unstable-dde-25-flake` 质量太差，**不要参考**。
+  `f81b263cd0688a2eed1e29920e655999672f1a6d` 为基准审查 diff 合理性。
+  基线就在本仓库 git 历史里，`git show f81b263:<path>` 直接取基线文件。
 
 ### 审包四步法
 升级/审查每个包时：
-1. 在 `dde/src/<repo>` 用 `git clone --filter=blob:none` 带完整历史 clone 源码，
-   用 git log/tag 对比新旧版本差异。
+1. **需要看代码时**才在 `dde/src/<repo>` 用 `git clone --filter=blob:none`
+   带完整历史 clone 源码，用 git log/tag 对比新旧版本差异。
 2. 检查硬编码路径（尤其 `/usr`），确认每处是否需要替换（Debian 专属工具、
    不被 Makefile 安装的 debian/ 目录等可有意保留）。
 3. 检查编译输出：gsettings/dconfig 配置、dbus service、systemd unit、polkit、

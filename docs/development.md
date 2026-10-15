@@ -657,10 +657,11 @@ adding a line after a `find_package`), edit the unpacked source in
   （`dtk_add_config_meta_files`）。
 - `dde-file-manager` / `deepin-system-monitor`：源码里根本没有 gschema。
 
-### 升级时不要照抄 `dde/nixos-unstable-dde-25-flake`
+### 升级时不要照抄三方 flake（历史教训）
 
-`dde/` 下的那个三方 flake 是早期的 Qt6 参考，质量不高。它带来的写法特点：
-用 `find . -name "*.go" -exec sed -i` 做全局替换替代 nixpkgs 精确的
+Qt6 升级早期参考过一个三方 flake（`nixos-unstable-dde-25-flake`，ktechmidas
+的 DDE 25 flake，已于 2026-10-15 从 `dde/` 删除），质量不高。它带来的写法
+特点：用 `find . -name "*.go" -exec sed -i` 做全局替换替代 nixpkgs 精确的
 `substituteInPlace`，并在命令后挂 `|| true` 吞掉失败。
 
 **已经吃过的一次亏**：Qt6 升级那批提交（尤其是 `64fb51f`、`bc8dae9`）参考了它，

@@ -29,8 +29,9 @@
 │   └── tools/                # 构建/工具（deepin-gettext-tools 等）
 ├── nixos-modules/deepin/     # NixOS 模块
 ├── docs/                     # development.md（维护状态）+ 本文件
-├── dde/                      # 参考代码（已被 .gitignore 忽略，不会提交）
-│   └── nixos-unstable-dde-25-flake/   # 上游 Qt6 迁移参考实现
+├── dde/                      # 上游源码（.gitignore 忽略，不会提交）
+│   ├── src/<repo>            # 需要看代码时才 clone（blobless，带完整历史）
+│   └── src-dl/               # fetch.py 下载的 tag 源码 + 工具脚本
 ├── vm/  vm2/                 # 虚拟机测试 flake
 └── readme.md
 ```
@@ -68,24 +69,26 @@
 
 详见 `docs/development.md` 的「Maintained packages」表。
 
-## 4. 参考实现（dde/ 子目录）
+## 4. 质量基线与参考代码
 
-`dde/nixos-unstable-dde-25-flake/` 是外部 Qt6 迁移参考项目（ktechmidas 的
-DDE 25 flake），已放入仓库但**被 .gitignore 忽略**。它采用与我们不同的命名
-（`dtk6core`/`dtk6widget` 等带 6 后缀），版本也略有差异（6.0.50 系列），但
-在包定义、patch、依赖选择上是极好的参考。
+**唯一基准是 nixpkgs 移除 DDE 前的最后一个版本**，就在本仓库 git 历史里：
 
-**如何利用**：
 ```bash
-# 查看某个包的上游 Qt6 定义
-cat dde/nixos-unstable-dde-25-flake/packages/library/<pkg>/default.nix
-# 查它的 hash / patch / 依赖选择，再适配到我们的命名与版本
+git show f81b263cd0688a2eed1e29920e655999672f1a6d:<path>   # 取基线文件
+git ls-tree -r --name-only f81b263                          # 列基线清单
 ```
 
-**注意差异**（避免直接照抄踩坑）：
-- 命名：参考用 `dtk6*`，我们用无 6 后缀。
-- DTK 版本：参考 6.0.50，我们 6.7.50（`-DDTK5=OFF` 单源码双构建）。
-- 参考的 `PROGRESS.md`/`RESEARCH.md` 记录了 Qt6 迁移的决策与踩坑，值得一读。
+三方参考项目（`nixos-unstable-dde-25-flake`，ktechmidas 的 DDE 25 flake）
+已于 2026-10-15 删除：Qt6 升级时照抄它导致过一批路径修复回归（详见
+development.md「升级时不要照抄三方 flake」），**不要再引入**。
+
+需要看上游源码时，**按需** clone 到 `dde/src/<repo>`（不要预先批量 clone）：
+
+```bash
+git clone --filter=blob:none https://github.com/linuxdeepin/<repo> dde/src/<repo>
+```
+
+`dde/src-dl/` 另有 `fetch.py <repo> <version>` 可下载指定 tag 的源码包。
 
 ## 5. 标准工作流（给 AI 代理的 SOP）
 
@@ -99,8 +102,8 @@ cat dde/nixos-unstable-dde-25-flake/packages/library/<pkg>/default.nix
    ```
    ⚠️ 不要用 `refs/tags` 的 tarball hash 直接填 `fetchFromGitHub`（它抓的是
    `archive/<rev>.tar.gz`，hash 不同）。见 development.md「SRI hash」。
-3. 先看 `dde/nixos-unstable-dde-25-flake/` 是否已有对应定义，参考其 patch 和
-   buildInputs；再适配命名/版本。
+3. 用 `git show f81b263:<path>` 对比 nixpkgs 基线的定义与 patch，判断改动
+   合理性；需要上游源码时再 clone 到 `dde/src/<repo>`。
 4. 写/改 `packages/<分类>/<pkg>/default.nix`，在 `packages/default.nix` 取消注释。
 5. `nix build .#<pkg> --no-link` 验证。失败时按 development.md 的 gotchas 排查。
 6. 更新 `docs/development.md` 的维护表 + 升级日志，然后按中文 commit 规范提交。
