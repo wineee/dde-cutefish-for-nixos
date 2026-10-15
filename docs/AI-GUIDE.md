@@ -56,6 +56,8 @@
   `util-dfm`。
 - ✅ Go 服务：`dde-api`（6.0.48）、`dde-daemon`（6.1.108）、`startdde`（6.1.6）、
   `deepin-pw-check`（6.0.12）、`deepin-desktop-schemas`（6.0.13）。
+- ✅ 工具：`deepin-anything`（7.1.0，Qt6）+ `deepin-anything-module`
+  （vfs_monitor.ko，按运行内核构建）。
 - ✅ 核心组件（Qt6）：`dde-application-manager`（1.2.62）、
   `deepin-service-manager`（1.0.24）、`dde-tray-loader`（2.0.42）、
   `dde-shell`（2.0.57）、`dde-file-manager`（6.6.6）、
@@ -73,7 +75,7 @@
   `dde-qt-dbus-factory`、`disomaster`、`dpa-ext-gnomekeyring`、`dde-widgets`
   （均加 alias throw）。
 - ✅ NixOS 模块清理：移除已删包的引用，默认 session 改为 `treeland`，
-  `deepin-anything` 模块已注释（暂不启用）。
+  `deepin-anything` 模块已启用（2026-10-15，见下）。
 
 > `packages/apps/` 的 11 个应用已于 2026-10-15 全部升级到 Qt6 并验证
 > `nix build` 通过（详见 `docs/development.md` 的 Maintained packages 表与
@@ -168,11 +170,11 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
 
 1. `packages/apps/` 仍有一批应用待升级（由另一 AI 并行负责，提交时注意不碰其文件）。
 2. 未来窗管：treeland（当前已删 deepin-kwin/dwayland/deepin-wayland-protocols）。
-3. `deepin-anything`：模块已注释（`flake.nix` imports 里），包定义也在
-   `packages/default.nix` 里注释掉。包本身还是 **Qt5**（`libsForQt5`），且
-   `postPatch` 把 kernelmod 整个 `add_subdirectory` 替换掉了 —— 要启用需要
-   先迁 Qt6 + 打包内核模块（`config.boot.kernelPackages.deepin-anything-module`
-   目前不存在）。是个完整的小项目，不是补几行的事。
+3. ~~`deepin-anything`~~ **已完成（2026-10-15）**：升级到 7.1.0，userspace
+   与内核模块均打包并验证通过，NixOS 模块已启用。见第 3 节与
+   `docs/porting/`。原计划的"迁 Qt6 + 打包内核模块"实际上上游 7.x 已原生
+   支持 Qt6（`find_package(QT NAMES Qt6 Qt5)`），Qt5 依赖只需在包定义里换成
+   Qt6 即可；内核模块拆成独立包 `deepin-anything-module`。
 4. **重建 VM 复测 treeland output**（见第 9 节第 1 条）：`vm/result` 还停在
    treeland 0.10.0，而 0.11.0 已包含当年判定缺失的 `enable()` 调用。
    2026-10-15 已 `nix build .#nixosConfigurations.vm.config.system.build.vm`

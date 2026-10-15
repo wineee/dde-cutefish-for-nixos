@@ -32,7 +32,7 @@
             ./nixos-modules/deepin/dde-api.nix
             ./nixos-modules/deepin/dde-daemon.nix
             ./nixos-modules/deepin/ddm.nix
-            # ./nixos-modules/deepin/deepin-anything.nix # disabled: deepin-anything is not packaged
+            ./nixos-modules/deepin/deepin-anything.nix
           ];
         };
     in

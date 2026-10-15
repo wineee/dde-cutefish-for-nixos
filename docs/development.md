@@ -75,6 +75,8 @@ be re-enabled one by one as it is upgraded.
 | deepin-reader | 6.6.2 | Qt6 | Qt6 (Dtk6 + WebEngine + bundled pdfium) |
 | deepin-screensaver | 6.5.11 | Qt6 | Qt6 (Dtk6 Widget+Gui, cmake)       |
 | deepin-system-monitor | 6.5.47 | Qt6 | Qt6 (Dtk6 + polkit-qt-1)          |
+| deepin-anything   | 7.1.0 | Qt6 | file index/search (daemon+searcher+server); lucene++/boost/spdlog |
+| deepin-anything-module | 7.1.0 | n/a | `vfs_monitor.ko` kbuild module (built per running kernel) |
 
 ## Upgrade log
 
@@ -544,6 +546,42 @@ be re-enabled one by one as it is upgraded.
     store 路径，再 `grep -rl "/usr/" <out>` 全量列出，然后**逐条回到上游源码
     分类**（exec 目标 / 沙箱路径 / 数据 / 死代码）。只按模式批量替换会误伤
     `ReadWritePaths` 和注释。
+- **deepin-anything** `6.2.10` -> `7.1.0`（2026-10-15）。Qt5 -> Qt6 重写，同时
+  把内核模块拆成独立包并在 NixOS 模块里接上：
+  - 上游 7.1.0 原生 Qt6（不再需要移植 patch），架构重构为
+    `deepin-anything-daemon`（user）+ `-searcher`/`-server`/`-logger`
+    （system）+ `-dispatcher` 四层；新增 `lucenepp`/`boost`/`spdlog` 依赖，
+    去掉 dbus。searcher 用 lucene++ 建索引。
+  - 上游 6.2.10 本身构建就是坏的：`src/library/CMakeLists.txt` 与
+    `src/server/backend/CMakeLists.txt` 调用了从未定义的宏 `install_targets`
+    —— 7.1.0 重构后该调用消失，这也是必须升级而不能原地修的原因。
+  - 构建期两处：`-DCMAKE_POLICY_VERSION_MINIMUM=3.5`（上游 `cmake_minimum_required`
+    写的是 3.1，CMake 4.x 直接拒绝）；`env.NIX_CFLAGS_COMPILE =
+    "-Wno-error=deprecated-declarations"`（`pinyin_processor.cpp` 用
+    `std::wstring_convert`，libstdc++ 15+ 已 deprecated，项目开 `-Werror`）。
+  - `postPatch` 里删掉 `src/CMakeLists.txt` 的
+    `add_subdirectory("kernelmod")`：内核模块改由独立包
+    `deepin-anything-module` 用 kbuild 直接构建（见下）。
+  - `postInstall` 把随包的 unit 里写死的 `/usr/libexec` 改成 `$out/libexec`。
+    注意**只有 logger（system）和 daemon（user）两个 unit 需要改** —— 上游
+    server unit 的安装被 debhelper 接管、包产物里根本没有它。
+  - 内核模块 **`deepin-anything-module`**（新包）：上游 `kernelmod` 走 DKMS
+    （只装源码 + dkms.conf），NixOS 下改成独立内核模块包：
+    `setSourceRoot = "sourceRoot=$(echo */src/kernelmod)"`，patch 掉 Makefile 里
+    写死的 `kdir := /lib/modules/$(shell uname -r)/build` 改用 `$(KERNELDIR)`，
+    并补一个上游缺失的 `modules_install` 目标。用
+    `linuxPackages.kernelModuleMakeFlags`（含 `KBUILD_OUTPUT=`）+
+    `kernel.moduleBuildDependencies`，`hardeningDisable = [ "pic" ]`，
+    `installTargets = [ "modules_install" ]`。**模块必须对着它要加载进去的
+    那个内核构建**，所以 NixOS 模块里用
+    `config.boot.kernelPackages.callPackage` 传入运行内核，
+    `boot.extraModulePackages` + `boot.kernelModules = [ "vfs_monitor" ]`。
+  - `CONFIG_FSNOTIFY_BROADCAST` 是 UOS 内核补丁，主线/nixpkgs 内核没有 ——
+    模块会自动退回 `kretprobes` 方案（上游设计好的回退路径），功能不受影响。
+  - NixOS 模块 `nixos-modules/deepin/deepin-anything.nix` 已重写并启用：
+    `systemd.packages` + server 服务声明 + user daemon `wantedBy`，
+    gate 跟随 `services.deepin25.dde-api.enable`。详见
+    `docs/porting/tools.md`。
 
 ## Removed (abandoned upstream)
 

@@ -91,7 +91,10 @@ let
       #### TOOLS
       dde-device-formatter = callPackage ./tools/dde-device-formatter { };
       deepin-gettext-tools = callPackage ./tools/deepin-gettext-tools { };
-      # deepin-anything = callPackage ./tools/deepin-anything { };
+      deepin-anything = callPackage ./tools/deepin-anything { };
+      # vfs_monitor.ko; built against the default kernel here, but the NixOS
+      # module passes the running kernel via .override so it matches.
+      deepin-anything-module = callPackage ./tools/deepin-anything-module { };
 
       #### ARTWORK
       dde-account-faces = callPackage ./artwork/dde-account-faces { };
