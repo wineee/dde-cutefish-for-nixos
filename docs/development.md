@@ -578,10 +578,10 @@ be re-enabled one by one as it is upgraded.
     `boot.extraModulePackages` + `boot.kernelModules = [ "vfs_monitor" ]`。
   - `CONFIG_FSNOTIFY_BROADCAST` 是 UOS 内核补丁，主线/nixpkgs 内核没有 ——
     模块会自动退回 `kretprobes` 方案（上游设计好的回退路径），功能不受影响。
-  - NixOS 模块 `nixos-modules/deepin/deepin-anything.nix` 已重写并启用：
+  - NixOS 模块 `nixos-modules/deepin/deepin-anything.nix` 已重写：
     `systemd.packages` + server 服务声明 + user daemon `wantedBy`，
-    gate 跟随 `services.deepin25.dde-api.enable`。详见
-    `docs/porting/tools.md`。
+    gate 为 `services.deepin25.deepin-anything.enable`（**默认 false**，
+    需显式开启）。详见 `docs/porting/tools.md`。
 
 ## Removed (abandoned upstream)
 

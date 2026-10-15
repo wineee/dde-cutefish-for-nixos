@@ -15,11 +15,7 @@
 
     services.deepin25.deepin-anything = {
 
-      enable = lib.mkEnableOption "deepin anything file search tool"
-        // {
-          default = config.services.deepin25.dde-api.enable;
-          defaultText = lib.literalExpression "config.services.deepin25.dde-api.enable";
-        };
+      enable = lib.mkEnableOption "deepin anything file search tool";
 
     };
 

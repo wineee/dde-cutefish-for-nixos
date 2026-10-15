@@ -75,7 +75,7 @@
   `dde-qt-dbus-factory`、`disomaster`、`dpa-ext-gnomekeyring`、`dde-widgets`
   （均加 alias throw）。
 - ✅ NixOS 模块清理：移除已删包的引用，默认 session 改为 `treeland`，
-  `deepin-anything` 模块已启用（2026-10-15，见下）。
+  `deepin-anything` 模块已接好但**默认不启用**（2026-10-15，见下）。
 
 > `packages/apps/` 的 11 个应用已于 2026-10-15 全部升级到 Qt6 并验证
 > `nix build` 通过（详见 `docs/development.md` 的 Maintained packages 表与

@@ -75,7 +75,8 @@ DKMS，改成独立的内核模块包：
 
 ### 模块挂载（`deepin-anything.nix`）
 
-- gate：`services.deepin25.deepin-anything.enable`，默认跟随 `dde-api.enable`。
+- gate：`services.deepin25.deepin-anything.enable`，**默认 false**（不跟随
+  `dde-api`）；需要文件搜索的用户显式打开。
 - `systemd.packages = [ pkgs.deepin.deepin-anything ]` 带出 logger（system）
   与 daemon（user）两个 unit；daemon 通过
   `systemd.user.services.deepin-anything-daemon.wantedBy = [ "default.target" ]`
