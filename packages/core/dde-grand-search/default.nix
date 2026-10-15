@@ -66,30 +66,44 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   postPatch = ''
-    # Fix hardcoded /usr paths
-    find . -name "CMakeLists.txt" -exec sed -i \
-      -e "s|/usr/bin|$out/bin|g" \
-      -e "s|/usr/share|$out/share|g" \
-      -e "s|/usr/lib|$out/lib|g" {} +
+    # The daemon whitelists D-Bus callers by the *real* executable behind
+    # /proc/<pid>/exe, which is the wrapQtAppsHook target, not $out/bin/dde-grand-search.
+    # Pointing it at the wrapper script makes every search request fail with
+    # "Access denied: Invalid invoker path".
+    substituteInPlace src/dde-grand-search-daemon/dbusservice/grandsearchinterface.cpp \
+      --replace-fail '"/usr/bin/dde-grand-search"' '"${placeholder "out"}/bin/.dde-grand-search-wrapped"'
 
-    # Fix D-Bus service files
-    find . -name "*.service" -exec sed -i \
-      -e "s|/usr/bin|$out/bin|g" {} +
+    # The control-center search result reuses that desktop entry for its icon.
+    substituteInPlace src/grand-search/utils/utils.cpp \
+      --replace-fail '/usr/share/applications/dde-control-center.desktop' \
+                     '/run/current-system/sw/share/applications/dde-control-center.desktop'
+
+    # Three shipped D-Bus activatable services.
+    substituteInPlace src/grand-search/contacts/services/com.deepin.dde.GrandSearch.service \
+      src/grand-search/contacts/services/com.deepin.dde.GrandSearchSetting.service \
+      src/dde-grand-search-daemon/org.deepin.dde.GrandSearchDaemon.service \
+      --replace-fail '/usr/bin/dde-grand-search' "$out/bin/dde-grand-search"
+
+    # Third-party searcher plugins (dde-control-center ships one) live in their
+    # own store paths and are only visible through the merged system profile.
+    substituteInPlace src/dde-grand-search-daemon/searchplugin/pluginmanager.cpp \
+      --replace-fail 'm_loader->setPluginPath({ QString(defaultPath) });' \
+                     'm_loader->setPluginPath({ QString(defaultPath), QStringLiteral("/run/current-system/sw/lib/dde-grand-search-daemon/plugins/searcher") });'
+
+    # ds_install_package()/ds_handle_package_translation() would install into
+    # dde-shell's read-only store path; re-point them at our own output right
+    # after DDEShellConfig.cmake has been loaded (it set()s these variables).
+    substituteInPlace src/grand-search-shell-plugin/CMakeLists.txt \
+      --replace-fail 'find_package(DDEShell REQUIRED)' 'find_package(DDEShell REQUIRED)
+set(DDE_SHELL_PACKAGE_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/share/dde-shell")
+set(DDE_SHELL_PLUGIN_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/lib/dde-shell")
+set(DDE_SHELL_TRANSLATION_INSTALL_DIR "''${CMAKE_INSTALL_PREFIX}/share/dde-shell")'
 
     # Skip reading /etc/os-version (NixOS doesn't have it); force DDE 25 so
     # the Qt6-only shell plugin gets built.
     substituteInPlace CMakeLists.txt \
       --replace-fail 'if (NOT DEFINED BUILD_OS_VERSION OR BUILD_OS_VERSION STREQUAL "")' \
                       'if (FALSE)'
-  '';
-
-  postConfigure = ''
-    # Redirect dde-shell package/plugin install dirs to our own output
-    # (ds_install_package resolves DDE_SHELL_PACKAGE_INSTALL_DIR into the
-    # dde-shell store path).
-    find . -name "cmake_install.cmake" -exec sed -i \
-      -e "s|${dde-shell}/share/dde-shell|$out/share/dde-shell|g" \
-      -e "s|${dde-shell}/lib/dde-shell|$out/lib/dde-shell|g" {} +
   '';
 
   cmakeFlags = [

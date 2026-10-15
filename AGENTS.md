@@ -123,5 +123,3 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
 - **VM 登录链路已打通**（DDM + Treeland 0 failed units），但登录画面仍有
   output 未 enable 问题，详见 `docs/AI-GUIDE.md` 第 9 节。
 - `deepin-anything` 模块已注释（待内核模块 + 用户态工具）。
-- `packages/apps/` 一批应用待升级（可能由其他 agent 并行负责，提交时不要碰
-  其文件，注意 `git status` 只 add 自己的改动）。

@@ -112,6 +112,10 @@ in
       "/share/dde-dock"
       "/share/dde-control-center"
       "/share/dde-clipboard"
+      # QTranslator directories of dde-network-core's plugins/libraries.
+      "/share/dde-network-core"
+      "/share/dock-network-plugin"
+      "/share/dss-network-plugin"
       "/share/dde-session-shell"
       "/share/dde-session-ui"
       # dde-appearance's QTranslator is located via QStandardPaths
@@ -237,6 +241,10 @@ in
       dde-application-manager
       deepin-service-manager
       deepin-pw-check
+      # The D-Bus service declares SystemdService=org.deepin.dde.control-center.service,
+      # so activation is delegated to systemd; without this the unit is missing
+      # and any D-Bus call to org.deepin.dde.ControlCenter1 fails.
+      dde-control-center
     ];
 
     # treeland.service is an upstream `linked` unit (no NixOS drop-in by
