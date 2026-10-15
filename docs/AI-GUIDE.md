@@ -38,22 +38,33 @@
 
 ## 3. 当前进度（截至最近提交）
 
-- ✅ 已升级并维护：`dtkcommon`/`dtklog`/`dtkcore`/`dtkgui`/`dtkwidget`/
-  `dtkdeclarative`/`dtksystemsettings`（统一 6.7.50 / 6.6.22，Qt6）、
-  `qt6integration`/`qt6platform-plugins`（6.0.50）、`treeland-protocols`（0.7.0）。
-- ✅ 应用：`deepin-terminal`（6.5.40，第一个 Qt6 应用）。
+> 版本号以各包 `default.nix` 的 `version` 为准（2026-10-15 核对）。
+
+- ✅ DTK（全 Qt6，统一 6.7.50；`dtksystemsettings` 6.6.22）：
+  `dtkcommon`/`dtklog`/`dtkcore`/`dtkgui`/`dtkwidget`/`dtkdeclarative`/
+  `dtksystemsettings`；`qt6integration`/`qt6platform-plugins`（6.0.50）、
+  `treeland-protocols`（0.7.0）。
+- ✅ 应用（**全部 Qt6，11 个**）：`deepin-terminal`（6.5.40）、
+  `deepin-calculator`（6.5.40）、`deepin-compressor`（6.5.36）、
+  `deepin-draw`（6.5.43）、`deepin-editor`（6.7.0）、`deepin-music`（7.0.70）、
+  `deepin-picker`（6.0.12）、`deepin-reader`（6.6.2）、
+  `deepin-screensaver`（6.5.11）、`deepin-shortcut-viewer`（5.5.6）、
+  `deepin-system-monitor`（6.5.47）。
+  除 `deepin-terminal` 外全部在 `deepin.nix` 的 `optionalPackages` 里
+  （可用 `environment.deepin.excludePackages` 排除）。
 - ✅ 支撑库：`deepin-pdfium`、`docparser`、`gio-qt`、`udisks2-qt6`、`qt6mpris`、
   `util-dfm`。
-- ✅ Go 服务：`dde-api`（6.0.48）、`dde-daemon`（6.1.107）、`startdde`（6.1.6）、
+- ✅ Go 服务：`dde-api`（6.0.48）、`dde-daemon`（6.1.108）、`startdde`（6.1.6）、
   `deepin-pw-check`（6.0.12）、`deepin-desktop-schemas`（6.0.13）。
-- ✅ 核心组件（Qt6）：`dde-application-manager`（1.2.45）、
-  `deepin-service-manager`（1.0.21）、`dde-tray-loader`（2.0.27）、
-  `dde-shell`（2.0.52）、`dde-file-manager`（6.5.121）、
-  `dde-session-ui`（6.0.50）、`dde-launchpad`（2.0.48）、
-  `dde-appearance`（1.1.86）、`dde-clipboard`（6.1.35）、
+- ✅ 核心组件（Qt6）：`dde-application-manager`（1.2.62）、
+  `deepin-service-manager`（1.0.24）、`dde-tray-loader`（2.0.42）、
+  `dde-shell`（2.0.57）、`dde-file-manager`（6.6.6）、
+  `dde-session-ui`（6.0.50）、`dde-launchpad`（2.0.49）、
+  `dde-appearance`（1.1.86）、`dde-clipboard`（6.1.36）、
   `dde-grand-search`（6.1.1）、`dde-app-services`（1.0.46）、
-  `dde-session`（2.0.33）、`dde-session-shell`（6.0.68）、
-  `dde-control-center`（6.1.109）、`dde-network-core`（2.0.102）。
+  `dde-session`（2.0.34）、`dde-session-shell`（6.0.68）、
+  `dde-control-center`（6.1.110）、`dde-network-core`（2.0.103）、
+  `treeland`（0.11.0）、`ddm`（0.4.0）、`dde-seatd`。
 - ✅ artwork 全家桶：account-faces / icon / wallpapers / gtk-theme /
   sound-theme / desktop-theme。
 - ✅ `deepin-desktop-base`（2026.09.04，已移到 core/ 并 NixOS 品牌化）。
@@ -61,8 +72,12 @@
   `dwayland`、`deepin-kwin`、`udisks2-qt5`、`dde-api-proxy`、
   `dde-qt-dbus-factory`、`disomaster`、`dpa-ext-gnomekeyring`、`dde-widgets`
   （均加 alias throw）。
-- ✅ NixOS 模块清理：移除已删包的引用，默认 session 改为 `deepin`，
+- ✅ NixOS 模块清理：移除已删包的引用，默认 session 改为 `treeland`，
   `deepin-anything` 模块已注释（暂不启用）。
+
+> `packages/apps/` 的 11 个应用已于 2026-10-15 全部升级到 Qt6 并验证
+> `nix build` 通过（详见 `docs/development.md` 的 Maintained packages 表与
+> 升级日志）。本节此前只写 `deepin-terminal` 一个应用，已过期。
 - ⏳ 阻塞项：无（所有已记录 blocker 均已解决）。
 - 🖥️ VM 调试：DDM + Treeland 启动链路已打通（0 failed units），登录画面
   待最后一项 output enable 问题解决。见第 9 节。

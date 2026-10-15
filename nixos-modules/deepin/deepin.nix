@@ -199,13 +199,18 @@ in
         optionalPackages = [
           dde-calendar
           dde-grand-search
-          deepin-terminal
           onboard # dde-dock plugin
+          deepin-terminal
           deepin-calculator
           deepin-compressor
+          deepin-draw
           deepin-editor
-          deepin-system-monitor
+          deepin-music
+          deepin-picker
+          deepin-reader
+          deepin-screensaver
           deepin-shortcut-viewer
+          deepin-system-monitor
         ];
       in
       requiredPackages
