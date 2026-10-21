@@ -1,6 +1,8 @@
 result*
 vm/nixos.qcow2
+vm-cutefish/nixos.qcow2
 dde
+/cutefish
 a
 b
 .workbuddy/

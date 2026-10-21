@@ -35,13 +35,32 @@
             ./nixos-modules/deepin/deepin-anything.nix
           ];
         };
+
+      # Cutefish has its own package set (see ./packages/cutefish) and shares
+      # nothing with `pkgs.deepin`, so it gets a separate overlay and module.
+      cutefishModule =
+        { config, lib, pkgs, ... }:
+        {
+          nixpkgs.overlays = [
+            (final: prev: {
+              cutefish = import ./packages/cutefish { pkgs = final; };
+            })
+          ];
+
+          imports = [
+            ./nixos-modules/cutefish/cutefish.nix
+            ./nixos-modules/cutefish/artwork.nix
+          ];
+        };
     in
     {
-      # Canonical module name, plus per-system aliases for backwards
-      # compatibility with the historical `dde-nixos.nixosModules.<system>`.
+      # Canonical module names, plus per-system aliases for backwards
+      # compatibility with the historical `dde-nixos.nixosModules.<system>`
+      # (those keep pointing at DDE).
       nixosModules =
         {
           deepin = deepinModule;
+          cutefish = cutefishModule;
         }
         // builtins.listToAttrs (
           map (system: {
@@ -63,12 +82,17 @@
           deepin = pkgs.callPackage ./packages { };
           isDerivation = value: (builtins.tryEval (value.type or null)).value == "derivation";
           deepinPackages = pkgs.lib.filterAttrs (_: isDerivation) deepin;
+
+          # Cutefish: its own package set, not part of the DDE scope.
+          cutefish = import ./packages/cutefish { inherit pkgs; };
+          cutefishPackages = pkgs.lib.filterAttrs (_: isDerivation) cutefish;
         in
         {
           # flake-utils flattens this into packages.<system>.<name>.
-          packages = deepinPackages;
+          packages = deepinPackages // cutefishPackages;
 
           # The DDE package scope (pkgs.deepin) expected by the NixOS module.
           legacyPackages.deepin = deepin;
+          legacyPackages.cutefish = cutefish;
         });
 }
