@@ -3,6 +3,12 @@
 面向 AI 编码代理（及人类维护者）的仓库工作指南。详细背景见
 `docs/AI-GUIDE.md`，包维护清单与升级日志见 `docs/development.md`。
 
+> **前提**：本仓库大量依靠 AI 代理维护，改动**不保证**达到合入 nixpkgs 的
+> 标准（`meta` 正确性、许可证、审查深度、能否上游化都不做承诺），不应直接
+> 原样回传上游；patch 的「上游 bug / Nix 打包适配」分类见
+> `docs/upstream-patches.md`。另外 **DDE 移植仍在进行中、当前不可用**：
+> `services.desktopManager.deepin` 起不来完整桌面，只当作移植工作台用。
+
 ## 项目定位
 
 把 DDE（Deepin Desktop Environment）在 NixOS 上重新跑起来，并逐步把整套组件

@@ -11,7 +11,8 @@
 
 ### 0. 环境与仓库
 
-- 仓库：`dde-nixos`，路径 `<REPO>`（请让用户告诉你绝对路径；下称 `$REPO`）。
+- 仓库：`dde-cutefish-for-nixos`（github 上为 `wineee/dde-cutefish-for-nixos`），
+  路径 `<REPO>`（请让用户告诉你绝对路径；下称 `$REPO`）。
 - 目标：nixpkgs 移除 DDE 后，把 `pkgs/desktops/deepin` 与对应 NixOS 模块接回来，
   整体迁移到 **Qt6**，未来窗管是 **treeland**（Wayland 合成器）。
 - 分支：`main`。质量基线提交：`f81b263cd0688a2eed1e29920e655999672f1a6d`。
