@@ -1,0 +1,12 @@
+diff --git a/src/clipboard/selection.h b/src/clipboard/selection.h
+index 4072989..34145d2 100644
+--- a/src/clipboard/selection.h
++++ b/src/clipboard/selection.h
+@@ -7,6 +7,7 @@
+ 
+ #pragma once
+ 
++#include <cstdint>
+ #include <deque>
+ #include <memory>
+ #include <string>

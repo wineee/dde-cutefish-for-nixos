@@ -42,7 +42,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   meta = {
     description = "Icon theme for the Cutefish desktop";
     homepage = "https://github.com/cutefishos/icons";
-    license = lib.licenses.gpl3Plus;
+    license = lib.licenses.gpl3Only;
     platforms = lib.platforms.linux;
     maintainers = with lib.maintainers; [ wineee ];
   };

@@ -3,18 +3,39 @@
 调研日期：2026-10-21。数据取自 GitHub API（组织 `cutefishos`）与
 `cutefishos/packaging` 的 `versions` / `debian/*/control`。
 
-## 当前进度（2026-10-21）
+## 当前进度（2026-10-22 更新）
 
 - `.gitignore` 新增 `/cutefish`：上游源码 clone / 快照目录，与 `dde/` 一样不提交。
-  源码用 `git clone git@github.com:cutefishos/<repo>`（https 在本环境被代理拒），
-  `cutefish/fetch.py` 可用 `gh api .../tarball/<rev>` 取快照。
-- 新增 `packages/cutefish/`，在 `flake.nix` 里以独立属性集接入
+  源码用 `git clone git@github.com:cutefishos/<repo>`（https 在本环境被代理拒）。
+- `packages/cutefish/`，在 `flake.nix` 里以独立属性集接入
   （`packages.<system>.cutefish-*`，另有 `legacyPackages.cutefish`），
   **不并入 DDE 的 `lib.makeScope`**。
-- 已验证构建：`cutefish-wallpapers`、`cutefish-icons`。
-- NixOS 模块骨架：`nixosModules.cutefish` → `nixos-modules/cutefish/`
-  （`cutefish.nix` 桌面入口 + `artwork.nix` 图标/壁纸），见第 5.1 节。
-- 下一步：`cutefish-toolkit`（需先解决 Skia，见第六节）。
+- **已构建通过（17/17，全部取自当天 upstream HEAD）**：
+  `cutefish-skia`、`cutefish-toolkit`、`cutefish-framework`、
+  `cutefish-compositor`、`cutefish-core`、`cutefish-dm`、`cutefish-icons`、
+  `cutefish-wallpapers`、`cutefish-qt-plugins`、
+  `xdg-desktop-portal-cutefish`，以及应用 `text-editor` / `filemanager` /
+  `settings` / `terminal` / `video-player` / `calendar` / `system-monitor`。
+- NixOS 模块：`nixosModules.cutefish` → `nixos-modules/cutefish/`
+  （`cutefish.nix` 桌面入口 + `artwork.nix` 图标/壁纸），见第 5.1 节。已接上
+  wayland-sessions（`cutefish-core`）、D-Bus 系统服务、udev、systemd unit、
+  XDG portal 与 Qt 插件目录（`QT_PLUGIN_PATH`）。
+- 剩余：`cutefish-dm` 还没接进会话选项（要 greeter 用户 + PAM + 接管
+  `display-manager.service`），详见 `docs/porting/cutefish-core.md`；
+  `cutefish-computer-use`（Rust AI 控制）未打包；`cutefish-installer` 不打。
+
+**有意留着没改的两处 FHS 路径**（都在 `framework` / `core` 里，理由见
+`cutefish-core.md` 第二节）：framework 的 VPN 插件扫描目录
+（`/usr/lib/NetworkManager/VPN`，接 `${networkmanager}` 会让每个应用的闭包
+多出一个 NetworkManager），以及 cutefish-locales 那套 Debian locale-gen 布局。
+
+> **取 hash 的小技巧**：本环境的 `nix-prefetch-url` 走代理会 502，且
+> `git ssh` 对大仓要 `--filter=blob:none`。实测最省事的是
+> `curl https://codeload.github.com/cutefishos/<repo>/tar.gz/<rev>`
+> （**必须 `env -u https_proxy -u HTTP_PROXY`，直连不走代理**）+ python
+> `tarfile` 解压 + `nix hash path --sri --type sha256 <内层目录>`，与
+> `fetchFromGitHub` 的 `hash` 完全一致（先在 `cutefish-toolkit` 上对齐过：
+> 结果与既有包的 hash 逐字符相同）。
 
 ## 一、结论速览
 
@@ -294,8 +315,10 @@ Cutefish 自己实现了 polkit agent 和一批系统服务，这一块在 NixOS
 
 ## 九、待验证 / 风险
 
-- 当前 nixpkgs（flake.lock `6510408d`）的 `wayland-protocols` 是否 >= 1.39、
-  `gn` 是否可用 —— 动手前先 `nix eval` 确认。
+- ~~当前 nixpkgs（flake.lock `6510408d`）的 `wayland-protocols` 是否 >= 1.39、
+  `gn` 是否可用~~ **已确认（2026-10-21）**：`wayland-protocols` 1.49、
+  `gn` 0-unstable-2026-08-14 都在；另有 ninja 1.13.2 / clang 21.1.8 /
+  libjxl 0.12.0 / pipewire 1.6.9 / seatd 0.9.3。Skia 那关没有缺件。
 - `icons` 是 GPL-3.0、`wallpapers` 许可 NOASSERTION：写 `meta.license` 前需
   人工确认实际 LICENSE 文本。
 - `cutefish-dm` 的 Debian `postinst` 建的账号名与用途未细查，模块写

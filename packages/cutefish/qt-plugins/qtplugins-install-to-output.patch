@@ -1,0 +1,37 @@
+--- a/platformtheme/CMakeLists.txt	2026-10-22 12:05:57.350749991 +0800
++++ b/platformtheme/CMakeLists.txt	2026-10-22 12:05:57.612437442 +0800
+@@ -72,14 +72,10 @@
+     Qt6::DBus
+ )
+ 
+-find_program(QT_PATHS_EXECUTABLE NAMES qtpaths6 REQUIRED)
+-execute_process(COMMAND "${QT_PATHS_EXECUTABLE}" -query QT_INSTALL_PLUGINS
+-    OUTPUT_VARIABLE QT_PLUGINS_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+-if(QT_PLUGINS_DIR)
+-    message(STATUS "Qt6 plugin directory:" "${QT_PLUGINS_DIR}")
+-else()
+-    message(FATAL_ERROR "Qt6 plugin directory cannot be detected.")
+-endif()
++# Nix: qtpaths6 answers with a directory inside qtbase itself, which is no
++# longer writable once qtbase is in the store; the plugins have to land in our
++# own output, below the same qtPluginPrefix so that QT_PLUGIN_PATH finds them.
++set(QT_PLUGINS_DIR ${CUTEFISH_QT_PLUGIN_DIR})
+ 
+ install(TARGETS cutefishplatformtheme LIBRARY DESTINATION "${QT_PLUGINS_DIR}/platformthemes")
+ 
+--- a/imageformat/CMakeLists.txt	2026-10-22 12:05:57.397540911 +0800
++++ b/imageformat/CMakeLists.txt	2026-10-22 12:05:57.613327060 +0800
+@@ -29,9 +29,10 @@
+     PkgConfig::LIBRSVG
+ )
+ 
+-find_program(QT_PATHS_EXECUTABLE NAMES qtpaths6 REQUIRED)
+-execute_process(COMMAND "${QT_PATHS_EXECUTABLE}" -query QT_INSTALL_PLUGINS
+-    OUTPUT_VARIABLE CMAKE_INSTALL_QTPLUGINDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
++# Nix: qtpaths6 answers with a directory inside qtbase itself, which is no
++# longer writable once qtbase is in the store; the plugins have to land in our
++# own output, below the same qtPluginPrefix so that QT_PLUGIN_PATH finds them.
++set(CMAKE_INSTALL_QTPLUGINDIR ${CUTEFISH_QT_PLUGIN_DIR})
+ 
+ install(TARGETS ${TARGET} DESTINATION ${CMAKE_INSTALL_QTPLUGINDIR}/imageformats/)
+ 

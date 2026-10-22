@@ -1,0 +1,16 @@
+--- a/platformtheme/platformtheme.cpp	2026-10-22 12:01:53.651957026 +0800
++++ b/platformtheme/platformtheme.cpp	2026-10-22 12:01:53.875040373 +0800
+@@ -56,9 +56,10 @@
+             &PlatformTheme::onFontChanged);
+     connect(m_hints, &HintsSettings::iconThemeChanged, this, &PlatformTheme::onIconThemeChanged);
+     connect(m_hints, &HintsSettings::cursorThemeChanged, this, [] {
+-        for (auto *window : qGuiApp->allWindows()) {
+-            QWindowSystemInterface::handleThemeChange(window);
+-        }
++        // Qt 6.11 dropped this private helper's per-window overload; the
++        // argument-less one already refreshes every window, which is what
++        // enumerating them did anyway.
++        QWindowSystemInterface::handleThemeChange();
+     });
+     connect(m_hints, &HintsSettings::darkModeChanged, this, [] {
+         QWindowSystemInterface::handleThemeChange();

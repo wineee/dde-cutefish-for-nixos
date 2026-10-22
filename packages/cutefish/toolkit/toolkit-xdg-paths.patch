@@ -1,0 +1,146 @@
+diff --git a/src/base/paths.cpp b/src/base/paths.cpp
+index 77d4749..8381f0a 100644
+--- a/src/base/paths.cpp
++++ b/src/base/paths.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include "base/paths.h"
+ 
++#include <cstdlib>
+ #include <optional>
+ #include <pwd.h>
+ #include <regex>
+@@ -50,14 +51,38 @@ std::string runtimeDirectory()
+     return "/run/user/" + std::to_string(getuid());
+ }
+ 
++// A colon separated search path from the XDG base directory spec. Relative
++// entries are ignored, as the spec requires. NixOS has no /usr/share, so the
++// environment has to win over the spec defaults.
++static std::vector<std::string> searchPath(const char* variable, std::vector<std::string> fallback)
++{
++    const char* value = getenv(variable);
++    const std::string text = value && *value ? value : "";
++
++    std::vector<std::string> directories;
++    for (size_t start = 0; start <= text.size();) {
++        const size_t end = text.find(':', start);
++        std::string part = text.substr(start, end == std::string::npos ? std::string::npos : end - start);
++        if (!part.empty() && part.front() == '/') {
++            if (part.size() > 1 && part.back() == '/')
++                part.pop_back();
++            directories.push_back(part);
++        }
++        if (end == std::string::npos)
++            break;
++        start = end + 1;
++    }
++    return directories.empty() ? fallback : directories;
++}
++
+ std::vector<std::string> dataDirectories()
+ {
+-    return {"/usr/local/share", "/usr/share"};
++    return searchPath("XDG_DATA_DIRS", {"/usr/local/share", "/usr/share"});
+ }
+ 
+ std::vector<std::string> configDirectories()
+ {
+-    return {"/etc/xdg"};
++    return searchPath("XDG_CONFIG_DIRS", {"/etc/xdg"});
+ }
+ 
+ std::string cutefishConfig(const std::string& name)
+@@ -123,8 +148,10 @@ std::string findExecutable(const std::string& program)
+     if (program.find('/') != std::string::npos)
+         return access(program.c_str(), X_OK) == 0 ? program : std::string();
+ 
+-    const std::string directories[] = {home() + "/.local/bin", "/usr/local/sbin", "/usr/local/bin",
+-                                       "/usr/sbin", "/usr/bin", "/sbin", "/bin"};
++    std::vector<std::string> directories = {home() + "/.local/bin"};
++    const std::vector<std::string> path = searchPath(
++        "PATH", {"/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin"});
++    directories.insert(directories.end(), path.begin(), path.end());
+     for (const std::string& directory : directories) {
+         const std::string path = directory + "/" + program;
+         if (access(path.c_str(), X_OK) == 0)
+diff --git a/src/ui/icon_loader.cpp b/src/ui/icon_loader.cpp
+index 37ee9f3..2ceb637 100644
+--- a/src/ui/icon_loader.cpp
++++ b/src/ui/icon_loader.cpp
+@@ -8,6 +8,7 @@
+ #include <climits>
+ #include <cmath>
+ #include <cstdio>
++#include <cstdlib>
+ #include <cstring>
+ #include <filesystem>
+ #include <fstream>
+@@ -52,6 +53,29 @@ static std::string homeDirectory()
+     return {};
+ }
+ 
++// The XDG data directories. NixOS has no /usr/share, so the search path has
++// to come from the environment; the spec default is the fallback.
++static std::vector<std::string> dataDirectories()
++{
++    const char* value = getenv("XDG_DATA_DIRS");
++    const std::string text = value && *value ? value : "/usr/local/share:/usr/share";
++
++    std::vector<std::string> directories;
++    for (size_t start = 0; start <= text.size();) {
++        const size_t end = text.find(':', start);
++        std::string part = text.substr(start, end == std::string::npos ? std::string::npos : end - start);
++        if (!part.empty() && part.front() == '/') {
++            if (part.size() > 1 && part.back() == '/')
++                part.pop_back();
++            directories.push_back(part);
++        }
++        if (end == std::string::npos)
++            break;
++        start = end + 1;
++    }
++    return directories;
++}
++
+ // Where icon themes live, first match first.
+ static std::vector<std::string> iconBases()
+ {
+@@ -61,8 +85,8 @@ static std::vector<std::string> iconBases()
+         bases.push_back(home + "/.icons");
+         bases.push_back(home + "/.local/share/icons");
+     }
+-    bases.push_back("/usr/local/share/icons");
+-    bases.push_back("/usr/share/icons");
++    for (const std::string& directory : dataDirectories())
++        bases.push_back(directory + "/icons");
+     return bases;
+ }
+ 
+@@ -820,8 +844,8 @@ std::string IconLoader::themeIconPath(const std::string& name, int size, double
+     if (it != m_paths.end())
+         return it->second;
+ 
+-    // A missing "a-b-c" falls back to "a-b", then "a"; then /usr/share/pixmaps
+-    // is looked in for the name itself.
++    // A missing "a-b-c" falls back to "a-b", then "a"; then pixmaps in the
++    // data directories is looked in for the name itself.
+     std::string path;
+     for (std::string candidate = name; !candidate.empty();) {
+         path = lookup(candidate, name, size, iconScale);
+@@ -833,8 +857,13 @@ std::string IconLoader::themeIconPath(const std::string& name, int size, double
+     for (const char* extension : kExtensions) {
+         if (!path.empty())
+             break;
+-        if (std::filesystem::exists("/usr/share/pixmaps/" + name + extension))
+-            path = "/usr/share/pixmaps/" + name + extension;
++        for (const std::string& directory : dataDirectories()) {
++            const std::string candidate = directory + "/pixmaps/" + name + extension;
++            if (std::filesystem::exists(candidate)) {
++                path = candidate;
++                break;
++            }
++        }
+     }
+     m_paths.emplace(key, path);
+     return path;

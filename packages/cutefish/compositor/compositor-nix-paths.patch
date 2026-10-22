@@ -1,0 +1,61 @@
+--- a/src/core/compositor_shell.cpp	2026-10-22 12:15:58.571302966 +0800
++++ b/src/core/compositor_shell.cpp	2026-10-22 12:15:58.903756631 +0800
+@@ -7,6 +7,8 @@
+ #include <unistd.h>
+ 
+ #include <algorithm>
++#include <filesystem>
++#include <system_error>
+ #include <utility>
+ 
+ #include "accelerators/accelerator_configuration.h"
+@@ -24,6 +26,7 @@
+ #include "backend/session/libseat_session.h"
+ #include "base/dbus.h"
+ #include "base/event_loop.h"
++#include "base/paths.h"
+ #include "compositor/surface.h"
+ #include "computer_control/controller.h"
+ #include "computer_control/permission_consent.h"
+@@ -766,6 +769,23 @@
+     return services;
+ }
+ 
++// Where the session's own companions live: they come from cutefish-core, which
++// itself starts this compositor, so their store paths cannot be compiled in.
++// The session puts them on PATH; the security delegate compares canonical
++// paths, hence the resolution.
++static std::vector<std::string> companionExecutables(std::initializer_list<std::string> names)
++{
++    std::vector<std::string> executables;
++    for (const std::string &name : names) {
++        const std::string candidate = base::paths::findExecutable(name);
++        if (candidate.empty())
++            continue;
++        std::error_code error;
++        executables.push_back(std::filesystem::canonical(candidate, error).string());
++    }
++    return executables;
++}
++
+ bool CompositorShell::initWayland()
+ {
+     m_server = std::make_unique<wayland::Server>();
+@@ -773,13 +793,13 @@
+         return false;
+ 
+     m_security = std::make_unique<wayland::ExecutableSecurityDelegate>(
+-            withExecutables({"/usr/bin/cutefish-services"}, m_options.clipboardClients),
++            withExecutables(companionExecutables({"cutefish-services"}), m_options.clipboardClients),
+             captureExecutables(m_options),
+             // Permission prompts and authentication dialogs.
+-            std::vector<std::string> {"/usr/bin/cutefish-services",
+-                                      "/usr/bin/cutefish-polkit-agent"},
++            companionExecutables({"cutefish-services", "cutefish-polkit-agent"}),
+             !m_options.noDrm,
+-            withExecutables({"/usr/bin/cutefish-computer-use"}, m_options.computerControlClients));
++            withExecutables(companionExecutables({"cutefish-computer-use"}),
++                            m_options.computerControlClients));
+     m_windowManager.setSystemDialogPolicy([this](int64_t pid) {
+         return m_security->showsSystemDialogs(pid);
+     });

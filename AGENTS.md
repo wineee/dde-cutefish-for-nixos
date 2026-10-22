@@ -119,6 +119,16 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
 - **packages/core/ 审查中**：按四步法逐个审查（deepin-service-manager、
   dde-session 系、dde-shell、treeland、ddm 等）。
 - 核心组件、Go 服务、artwork 已大部分升级到 Qt6 并构建通过。
-- **VM 登录链路已打通**（DDM + Treeland 0 failed units），但登录画面仍有
-  output 未 enable 问题，详见 `docs/AI-GUIDE.md` 第 9 节。
-- `deepin-anything` 模块已注释（待内核模块 + 用户态工具）。
+- **VM 登录链路已打通**（DDM + Treeland 0 failed units），treeland 0.11.0
+  的 output enable 问题已于 2026-10-15 实机复测通过（宿主 KVM + AMD GPU + GL），
+  详见 `docs/AI-GUIDE.md` 第 9 节。
+- `deepin-anything` 模块已接好，`services.deepin25.deepin-anything.enable`
+  默认 false（userspace + 内核模块 + 3 个 unit 均在，详见
+  `docs/porting/tools.md`）。
+- **Cutefish 是第二套桌面（独立于 DDE）**：`packages/cutefish/`（`lib.fix`
+  属性集，不进 DDE scope）+ `nixos-modules/cutefish/` +
+  `vm-cutefish/`。17 个包全部构建通过；`cutefish-dm` 已打包但尚未接进会话
+  选项（greeter 用户 / PAM / `display-manager.service`）。详见
+  `docs/porting/cutefish-survey.md`（总览与进度）、
+  `cutefish-toolkit.md`（Skia 与 toolkit）、`cutefish-apps.md`（L3 应用）、
+  `cutefish-core.md`（会话、后台服务、显示管理器）。

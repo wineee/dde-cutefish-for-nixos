@@ -1,0 +1,12 @@
+diff --git a/clients/audio/audio_object.cpp b/clients/audio/audio_object.cpp
+index cd9a811..bb8a9d6 100644
+--- a/clients/audio/audio_object.cpp
++++ b/clients/audio/audio_object.cpp
+@@ -13,6 +13,7 @@
+ #include <spa/param/props.h>
+ #include <spa/param/route.h>
+ #include <spa/pod/parser.h>
++#include <spa/pod/iter.h> // spa_pod_find_prop()
+ 
+ #include "cutefish/audio/backend.h"
+ 

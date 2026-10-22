@@ -28,16 +28,22 @@
               # config references $term, which stays empty unless we set it.
               foot
               wmenu # $mod+d launcher from sway's default config
-              # Just to eyeball the icon theme: no Cutefish app is packaged yet.
               thunar
+              # Real Cutefish application. Its own protocols (cutefish-shell-v1
+              # and friends) are bound at runtime and are optional, so it is
+              # expected to run under sway too -- that makes it the first
+              # end-to-end check of cutefish-toolkit.
+              dde-nixos.packages.${system}.cutefish-text-editor
             ];
 
-            # Cutefish artwork (icon theme + wallpapers). The session itself is
-            # still missing: cutefish-compositor/cutefish-dm depend on
-            # cutefish-toolkit, which needs the pinned Skia build
-            # (docs/porting/cutefish-survey.md). Until then sway stands in as a
-            # Wayland desktop so the VM is not a bare tty; drop it and enable
-            # cutefish-dm + services.displayManager.* once the compositor lands.
+            # Cutefish artwork (icon theme + wallpapers) and the whole package
+            # set -- the desktop manager module puts the applications, the
+            # session entry and the portal on systemPackages itself.
+            # sway stands in for cutefish-compositor: the real session needs a
+            # working DRM/EGL device, which the VM only gets from the host GPU
+            # (see docs/AI-GUIDE.md §9 for how ../vm was verified). The
+            # cutefish-* applications still run under sway -- their private
+            # protocols are bound at runtime and degrade gracefully.
             services.desktopManager.cutefish.enable = true;
             programs.sway.enable = true;
             # sway expands variables while parsing, and this file is included at
