@@ -89,25 +89,46 @@ framework + compositor 之上，是 L2 层的全部内容。
 - `data/*.pam` 装到 `$out/etc/pam.d`：Debian 的 `@include common-*` 在 NixOS 上
   不存在，模块必须自己写 PAM（见下）。
 
-## 四、NixOS 模块侧现状
+## 四、NixOS 模块侧：`services.desktopManager.cutefish.enable`
 
-`services.desktopManager.cutefish.enable` 目前已接上：
+`nixos-modules/cutefish/cutefish.nix`（会话与桌面）接上：
 
 - `services.displayManager.sessionPackages = [ cutefish-core ]`（wayland-sessions）
+- `services.displayManager.defaultSession = "cutefish-wayland"`
 - `services.dbus.packages = [ cutefish-core ]`（system-services + policy）
 - `services.udev.packages = [ cutefish-core ]`（privacy / DDC 规则）
 - `systemd.packages = [ cutefish-core ]`（unit 与 document-portal drop-in）
-- `xdg.portal.extraPortals = [ xdg-desktop-portal-cutefish ]`
+- `xdg.portal`：`extraPortals` 加 cutefish + gtk，`config.common.default =
+  "cutefish;gtk"` —— 我们的 portal 只实现
+  Settings/FileChooser/Inhibit/ScreenCast，其余交给 GTK（1.17 之后后端要显式
+  指定，否则就是一条 eval 警告）。
+- `services.pipewire`（含 alsa/pulse）：合成器的音频客户端和录屏都要它。
 - `security.polkit.enable = true` + artwork（图标主题/壁纸）
 
 `systemd.packages` 只**链接** unit，不会自动 enable，所以 locales/privacy 不会
 随会话起来；两者分别由 D-Bus system bus 激活和 udev tag 触发。
 
-**还没做的**（`cutefish-dm` 未接入会话选项）：
+## 五、NixOS 模块侧：`cutefish-dm`（`nixos-modules/cutefish/dm.nix`）
 
-1. greeter 用户：unit 的 `ConditionUser=!cutefish-greeter` 说明上游预期一个
-   独立用户，NixOS 需要 `users.users.cutefish-greeter` + `Group`。
-2. PAM：`security.pam.services.cutefish-dm{,-greeter}.text`（参考 Debian 版
-   语义自己写，别用上游的 `@include`）。
-3. 抢占 `display-manager.service`：dm 的 unit 带 `Alias=display-manager.service`，
-   得先把 DM 那套 `services.xserver.displayManager.*` 关掉。
+选项在 `services.desktopManager.cutefish.displayManager.*`，桌面模块默认打开，
+想用别的 DM 启动 cutefish-wayland 就把它关掉。要点：
+
+- **greeter 用户**：`daemon/config.h` 写死 `cutefish-greeter`，用 `uidOf()` 找，
+  找不到守护进程直接退出。模块建系统用户 + 组，家目录 `/var/lib/cutefish-dm`
+  （`state.conf` 和登录界面壁纸都在那），并进 `video`/`render` 组（登录界面
+  就是 compositor，要 DRM 设备）。`/run/cutefish-dm` 由 tmpfiles 建。
+- **PAM**：上游 `@include common-*`，NixOS 没有，模块照 Debian 语义自己写
+  `cutefish-dm`（`substack login`）与 `cutefish-dm-greeter`（`pam_permit`）。
+  两个都设 `startSession = true` —— 这才有 `pam_systemd.so`，会话的 logind
+  seat 和 `systemd --user` 实例都靠它。
+- **抢占 `display-manager.service`**：unit 自带 `Alias=`，但 NixOS 不处理
+  [Install]，所以显式 `aliases` + `wantedBy = [ "graphical.target" ]`，并把
+  lightdm 兜底 `mkForce false`。`restartIfChanged = false`，免得
+  `nixos-rebuild switch` 把正在跑的会话杀掉。
+- **PATH**：linked unit 不会自动拿到系统 profile，而 compositor 要在 `PATH`
+  里找 `cutefish-services` / `cutefish-polkit-agent`，所以显式给 `path`。
+- **`/etc/cutefish-dm.conf`**：ini（`[Session] Default=...`），只有要改默认会话
+  或开自动登录时才需要；`Session` 名不带 `.desktop` 后缀（与 ddm 不同）。
+- **PipeWire drop-in**：上游装到 `/usr/lib/systemd/user/*.d/cutefish-dm.conf`，
+  NixOS 不读那里，用 `readDir` 把它们铺到 `/etc/systemd/user`（用户实例读这个）。
+  作用是登录界面不启动自己的 PipeWire，免得把共享 ALSA 混音器音量改掉。

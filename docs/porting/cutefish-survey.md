@@ -17,12 +17,17 @@
   `xdg-desktop-portal-cutefish`，以及应用 `text-editor` / `filemanager` /
   `settings` / `terminal` / `video-player` / `calendar` / `system-monitor`。
 - NixOS 模块：`nixosModules.cutefish` → `nixos-modules/cutefish/`
-  （`cutefish.nix` 桌面入口 + `artwork.nix` 图标/壁纸），见第 5.1 节。已接上
-  wayland-sessions（`cutefish-core`）、D-Bus 系统服务、udev、systemd unit、
-  XDG portal 与 Qt 插件目录（`QT_PLUGIN_PATH`）。
-- 剩余：`cutefish-dm` 还没接进会话选项（要 greeter 用户 + PAM + 接管
-  `display-manager.service`），详见 `docs/porting/cutefish-core.md`；
-  `cutefish-computer-use`（Rust AI 控制）未打包；`cutefish-installer` 不打。
+  （`cutefish.nix` 桌面入口 + `dm.nix` 显示管理器 + `artwork.nix` 图标/壁纸），
+  见第 5.1 节。已接上 wayland-sessions（`cutefish-core`）、D-Bus 系统服务、
+  udev、systemd unit、XDG portal、Qt 插件目录（`QT_PLUGIN_PATH`）、PipeWire，
+  以及 `cutefish-dm` 的全套接线（greeter 用户、两个 PAM 栈、
+  `display-manager.service` 别名、`/etc/cutefish-dm.conf`、PipeWire 的 user
+  drop-in）。详见 `docs/porting/cutefish-core.md` 第四、五节。
+- `vm-cutefish` 已换成真会话（cutefish-dm + cutefish-wayland，自动登录
+  test/test），镜像构建通过；**真机/VM 里的实际启动还没验过**（需要宿主 GPU
+  的 DRM/EGL，沙箱里没有，参考 `../vm` 的做法 `docs/AI-GUIDE.md` §9）。
+- 剩余：`cutefish-computer-use`（Rust AI 控制）未打包；`cutefish-installer`
+  不打。
 
 **有意留着没改的两处 FHS 路径**（都在 `framework` / `core` 里，理由见
 `cutefish-core.md` 第二节）：framework 的 VPN 插件扫描目录
@@ -200,18 +205,14 @@ nix build --no-write-lock-file --impure   # 或只 eval toplevel.drvPath
 ./result/bin/run-nixos-vm
 ```
 
-因为还没有会话，**目前用 sway + greetd（自动登录 test/test）占位**，只为
-能进一个 Wayland 桌面、用 thunar 肉眼看图标主题是否生效；compositor 与
-dm 打包后把这两块换成 `cutefish-dm` 即可。注意 vm 里开了
-`nixpkgs.config.allowUnfree = true`（壁纸）。
+起的就是真会话：`cutefish-dm` 占 tty1，`cutefish-wayland`（core 监督
+compositor）在 tty2，开自动登录 `test`/`test` 跳过登录界面（第二个 compositor，
+VM 里没必要再起一个）。注意 vm 里开了 `nixpkgs.config.allowUnfree = true`
+（壁纸）。
 
-sway 本身不带终端，而且它那个 `bin/sway` 只是 exec 壳、**不设 PATH**，由
-greetd 直接拉起时 `foot`/`swaymsg`/`gsettings` 全都找不到。所以 vm 里做了两件事：
-greetd 的会话命令是个小 shell 脚本，先 `export PATH=${config.system.path}/bin`
-再 exec sway；`/etc/sway/config.d/cutefish.conf` 里用绝对路径重新
-`bindsym $mod+Return exec $term`（`$term` 在解析时展开，include 在末尾，改不到
-主配置里那条绑定），并 `exec $term` 让进桌面就有终端。万一 sway 起不来，
-tty2 起已自动登录（`services.getty.autologinUser`），ssh 2223 也可。
+调试入口：ssh 2223 进去看 `journalctl -u cutefish-dm`、`-u display-manager`，
+会话自己的日志在 `~/.local/state/cutefish*`（toolkit 的日志分类）。会话起不来
+时 tty2+ 的 getty 还能登（unit 里 `Conflicts=getty@tty1.service`，只让出 tty1）。
 
 ## 六、移植难点（按风险排序）
 

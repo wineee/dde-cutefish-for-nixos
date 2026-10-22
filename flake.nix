@@ -49,6 +49,7 @@
 
           imports = [
             ./nixos-modules/cutefish/cutefish.nix
+            ./nixos-modules/cutefish/dm.nix
             ./nixos-modules/cutefish/artwork.nix
           ];
         };

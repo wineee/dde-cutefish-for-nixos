@@ -25,6 +25,8 @@ in
 
   config = lib.mkIf cfg.enable {
     services.cutefish.artwork.enable = lib.mkDefault true;
+    # Declared by dm.nix; defaulted here so that `enable` is all it takes.
+    services.desktopManager.cutefish.displayManager.enable = lib.mkDefault true;
 
     hardware.graphics.enable = lib.mkDefault true;
     security.polkit.enable = true;
@@ -35,6 +37,11 @@ in
     xdg.icons.enable = true;
 
     environment.systemPackages = with pkgs.cutefish; [
+      # Not just for its wayland-sessions entry: the session's own commands
+      # (cutefish-wayland-session, cutefish-services, cutefish-polkit-agent)
+      # have to be on PATH -- the compositor looks the latter two up at
+      # runtime, and the login screen executes the first one by name.
+      cutefish-core
       cutefish-calendar
       cutefish-filemanager
       cutefish-settings
@@ -43,6 +50,10 @@ in
       cutefish-text-editor
       cutefish-video-player
     ];
+
+    # cutefish-dm needs to know which entry to start when the user just
+    # presses enter; any other display manager reads the same list.
+    services.displayManager.defaultSession = lib.mkDefault "cutefish-wayland";
 
     # The wayland-sessions entry, the D-Bus system services of the privacy
     # switches, their udev rules and their units all come from the same
@@ -54,7 +65,14 @@ in
 
     xdg.portal = {
       enable = lib.mkDefault true;
-      extraPortals = [ pkgs.cutefish.xdg-desktop-portal-cutefish ];
+      extraPortals = [
+        pkgs.cutefish.xdg-desktop-portal-cutefish
+        # Ours only implements Settings/FileChooser/Inhibit/ScreenCast.
+        pkgs.xdg-desktop-portal-gtk
+      ];
+      # Since 1.17 the backend is picked explicitly; ours first, then GTK for
+      # the interfaces it does not implement.
+      config.common.default = lib.mkDefault "cutefish;gtk";
     };
 
     # The session sets QT_QPA_PLATFORMTHEME=cutefish; Qt then looks for the
@@ -63,9 +81,12 @@ in
     environment.variables.QT_PLUGIN_PATH = lib.mkDefault
       "${pkgs.cutefish.cutefish-qt-plugins}/${pkgs.qt6Packages.qtbase.qtPluginPrefix}";
 
-    # cutefish-dm is packaged but not wired up: enabling it means a greeter
-    # user, PAM stacks for cutefish-dm and cutefish-dm-greeter, and taking
-    # over display-manager.service, which the session options above do not
-    # cover yet. See docs/porting/cutefish-survey.md.
+    # The compositor's audio client and the screen recorder both talk to
+    # PipeWire; without it the session starts with no sound and no capture.
+    services.pipewire = {
+      enable = lib.mkDefault true;
+      alsa.enable = lib.mkDefault true;
+      pulse.enable = lib.mkDefault true;
+    };
   };
 }

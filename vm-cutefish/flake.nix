@@ -23,57 +23,24 @@
               gdb
               ripgrep
               binutils
-              glib # gsettings, used below to pick the icon theme
-              # Wayland terminal. sway ships none of its own and its default
-              # config references $term, which stays empty unless we set it.
-              foot
-              wmenu # $mod+d launcher from sway's default config
-              thunar
-              # Real Cutefish application. Its own protocols (cutefish-shell-v1
-              # and friends) are bound at runtime and are optional, so it is
-              # expected to run under sway too -- that makes it the first
-              # end-to-end check of cutefish-toolkit.
-              dde-nixos.packages.${system}.cutefish-text-editor
+              glib # gsettings, to read the settings the session stores
             ];
 
-            # Cutefish artwork (icon theme + wallpapers) and the whole package
-            # set -- the desktop manager module puts the applications, the
-            # session entry and the portal on systemPackages itself.
-            # sway stands in for cutefish-compositor: the real session needs a
-            # working DRM/EGL device, which the VM only gets from the host GPU
-            # (see docs/AI-GUIDE.md §9 for how ../vm was verified). The
-            # cutefish-* applications still run under sway -- their private
-            # protocols are bound at runtime and degrade gracefully.
+            # The real thing: cutefish-dm on tty1, the cutefish-wayland session
+            # (core supervising cutefish-compositor) on tty2. The module brings
+            # the applications, the session entry, the portal and the artwork;
+            # all of it needs a working DRM/EGL device, which the VM only gets
+            # from the host GPU (see docs/AI-GUIDE.md §9 for how ../vm was
+            # verified).
             services.desktopManager.cutefish.enable = true;
-            programs.sway.enable = true;
-            # sway expands variables while parsing, and this file is included at
-            # the end of the main config, so the default `bindsym $mod+Return
-            # exec $term` has already been expanded to nothing by then: rebind
-            # with an absolute path and open a terminal on startup.
-            environment.etc."sway/config.d/cutefish.conf".text = ''
-              set $term ${pkgs.foot}/bin/foot
-              bindsym $mod+Return exec $term
-              exec $term
-              exec gsettings set org.gnome.desktop.interface icon-theme 'Cutefish'
-            '';
-            services.greetd = {
+
+            # Skip the login screen: it is a second compositor to bring up, and
+            # the point of the VM is the session behind it. cutefish-dm reads
+            # this from /etc/cutefish-dm.conf, which the module generates.
+            services.displayManager.autoLogin = {
               enable = true;
-              settings.default_session = {
-                # pkgs.sway is only an exec wrapper: it does *not* put the
-                # system profile on PATH, so the session would find neither
-                # foot nor swaymsg/gsettings. Export it before exec'ing.
-                command = let
-                  swaySession = pkgs.writeShellScript "sway-vm-session" ''
-                    export PATH="${config.system.path}/bin:$PATH"
-                    exec ${pkgs.sway}/bin/sway
-                  '';
-                in "${swaySession}";
-                user = "test";
-              };
+              user = "test";
             };
-            # Fallback: if sway ever fails to start, tty2+ is already logged in
-            # (greetd owns tty1). VM-only convenience.
-            services.getty.autologinUser = "test";
 
             # Wallpapers are unfreeRedistributable (Unsplash License).
             nixpkgs.config.allowUnfree = true;
@@ -104,7 +71,13 @@
             users.users.test = {
               isNormalUser = true;
               uid = 1000;
-              extraGroups = [ "wheel" "networkmanager" "video" "render" ];
+              extraGroups = [
+                "wheel"
+                "networkmanager"
+                "video"
+                "render"
+                "audio" # PipeWire, which the session starts
+              ];
               password = "test";
             };
 
