@@ -598,6 +598,14 @@ be re-enabled one by one as it is upgraded.
 
 ## Gotchas
 
+### VM 启动脚本必须带全三个 virtiofs 标签
+
+`vm/run-headless.sh` 只挂了 `nix-store` 和 `xchg` 两个 virtiofs 标签，缺了
+`shared`（生成的 `run-nixos-vm` 是三个：`nix-store`/`shared`/`xchg`）。缺
+`shared` 时 stage-1 挂载 `/nix/.ro-store` 会卡住，serial 日志停在
+`virtio-fs: tag <shared> not found`，vCPU 空转不报错。手写 qemu 启动脚本时
+三个标签缺一不可。
+
 ### SRI hash for `fetchFromGitHub`
 
 `fetchFromGitHub` fetches `archive/<rev>.tar.gz`, which differs (metadata /

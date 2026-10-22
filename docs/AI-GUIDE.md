@@ -215,7 +215,7 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
 
 ### 已知限制（待解决）
 
-1. **output 未 enable（可能已随 treeland 0.11.0 修掉，待复测）**：treeland 日志
+1. **output 未 enable（✅ 已随 treeland 0.11.0 修复，2026-10-15 实机复测通过）**：treeland 日志
    `Temporarily disabled output during initial scan "Virtual-1"` 后无
    `Enabled output`。DConfig `org.desktopspec.ConfigManager` 已注册、
    `org.deepin.dde.treeland.output` 资源可读（width/height/x 均为默认 0，
@@ -233,9 +233,21 @@ type 常用：`feat`/`fix`/`refactor`/`remove`/`chore`；scope 用包名或目�
      的那一步。
    所以**无需改源码**；已验证 `vm/flake.lock` 重新生成后，VM toplevel 解析到
    `treeland-0.11.0.drv`（不再是 0.10.0），并已 `nix build` 出新 VM 镜像、更新
-   `vm/result`（旧镜像停留在 10-12）。**剩余动作只有"在带 KVM/GL 的环境里跑起来
-   看 output 是否亮"** —— 本沙箱无 KVM（纯 TCG 太慢）、无 GL render node
-   （`gtk,gl=on` 与 `egl-headless` 都起不来），故未完成这一步复测。
+   `vm/result`（旧镜像停留在 10-12）。
+   **✅ 2026-10-15 实机复测通过**（宿主 treeland Wayland + AMD Radeon 880M +
+   KVM + `egl-headless,gl=on`，guest 内 `virtio-vga-gl` 走 virgl → 宿主真实 GPU）：
+   - 0 failed units，`ddm` + `treeland` 均 active running；
+   - DRM 后端初始化成功（`virtio_gpu`，`connector Virtual-1: Requesting
+     modeset`），GLES2 渲染器创建成功（virgl/AMD）；
+   - **当年 0.10.0 的 `Temporarily disabled output during initial scan
+     "Virtual-1"` 不再出现**；`restoreExtensionModeFromConfig()`
+     （`helper.cpp:3989`）对每个 output 无条件 `enable()` 已生效；
+   - 两条 `Output "Virtual-1" does not support gamma LUT!` 只在 output 已被
+     enable、且 ddm/greeter 通过 `treeland_output_color_control_v1` 协议 commit
+     时才打印 —— 是 output 点亮的直接证据；
+   - `DDM protocol: switch_to_user "test"`、lock 界面渲染、用户会话建立均正常。
+   复测脚本 `vm/run-egl.sh`（本地，不提交）以生成的 `run-nixos-vm` 为基，仅把
+   `-display gtk,gl=on` 换成 `egl-headless,gl=on` 并加 `-serial file` 抓日志。
 2. **登录界面缺默认头像**：`QtIcon: Cannot open:
    file:///var/lib/AccountsService/icons/default`。宿主 deepin 有该 symlink
    （指向 `icons/animal/raccoon.png`），VM 缺失。

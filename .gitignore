@@ -1,5 +1,8 @@
 result*
 vm/nixos.qcow2
+vm/run-*.sh
+vm/*.log
+vm/vm-tmp/
 vm-cutefish/nixos.qcow2
 dde
 /cutefish
