@@ -34,13 +34,16 @@
             # verified).
             services.desktopManager.cutefish.enable = true;
 
-            # Skip the login screen: it is a second compositor to bring up, and
-            # the point of the VM is the session behind it. cutefish-dm reads
-            # this from /etc/cutefish-dm.conf, which the module generates.
-            services.displayManager.autoLogin = {
-              enable = true;
-              user = "test";
-            };
+            # Keep the login screen: cutefish-dm starts cutefish-compositor
+            # --login as cutefish-greeter on VT1, and the session -- the thing
+            # worth debugging -- only comes up after you type test/test.
+            # Uncomment to skip the greeter and go straight into the session;
+            # the module turns this into [Autologin] in /etc/cutefish-dm.conf,
+            # and cutefish-dm falls back to the greeter if that login fails.
+            # services.displayManager.autoLogin = {
+            #   enable = true;
+            #   user = "test";
+            # };
 
             # Wallpapers are unfreeRedistributable (Unsplash License).
             nixpkgs.config.allowUnfree = true;

@@ -23,9 +23,10 @@
   以及 `cutefish-dm` 的全套接线（greeter 用户、两个 PAM 栈、
   `display-manager.service` 别名、`/etc/cutefish-dm.conf`、PipeWire 的 user
   drop-in）。详见 `docs/porting/cutefish-core.md` 第四、五节。
-- `vm-cutefish` 已换成真会话（cutefish-dm + cutefish-wayland，自动登录
-  test/test），镜像构建通过；**真机/VM 里的实际启动还没验过**（需要宿主 GPU
-  的 DRM/EGL，沙箱里没有，参考 `../vm` 的做法 `docs/AI-GUIDE.md` §9）。
+- `vm-cutefish` 已换成真会话（cutefish-dm + cutefish-wayland），镜像构建通过；
+  **真机/VM 里的实际启动还没验过**（需要宿主 GPU 的 DRM/EGL，沙箱里没有，
+  参考 `../vm` 的做法 `docs/AI-GUIDE.md` §9）。不开自动登录（开了就看不到
+  登录界面，见 5.2 节）。
 - 剩余：`cutefish-computer-use`（Rust AI 控制）未打包；`cutefish-installer`
   不打。
 
@@ -205,10 +206,15 @@ nix build --no-write-lock-file --impure   # 或只 eval toplevel.drvPath
 ./result/bin/run-nixos-vm
 ```
 
-起的就是真会话：`cutefish-dm` 占 tty1，`cutefish-wayland`（core 监督
-compositor）在 tty2，开自动登录 `test`/`test` 跳过登录界面（第二个 compositor，
-VM 里没必要再起一个）。注意 vm 里开了 `nixpkgs.config.allowUnfree = true`
-（壁纸）。
+起的就是真会话：`cutefish-dm` 占 tty1（登录界面 = `cutefish-compositor
+--login`，跑在 `cutefish-greeter` 用户下），`cutefish-wayland`（core 监督
+compositor）在 tty2，手动输 `test`/`test` 进会话。
+
+**要看登录界面就别开自动登录**：`services.displayManager.autoLogin` 一旦设置，
+模块会往 `/etc/cutefish-dm.conf` 写 `[Autologin]`，而 `Daemon::autologin()`
+成功就直接 `login()`、**不启动 greeter**（只有登录失败才回退到登录界面），
+所以界面永远看不到。vm 里那几行默认注释掉了。注意 vm 里开了
+`nixpkgs.config.allowUnfree = true`（壁纸）。
 
 调试入口：ssh 2223 进去看 `journalctl -u cutefish-dm`、`-u display-manager`，
 会话自己的日志在 `~/.local/state/cutefish*`（toolkit 的日志分类）。会话起不来
